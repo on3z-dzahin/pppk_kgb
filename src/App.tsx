@@ -5,10 +5,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from 'firebase/auth';
-import { KGBRecord, SKTemplateConfig, AppRole, AppSession } from './types/kgb';
-import { DEFAULT_KGB_DATA, DEFAULT_TEMPLATE, fetchSpreadsheetData, INDONESIAN_MONTHS, ALL_KGB_YEARS, hasValueCForYear } from './services/googleSheets';
-import { initAuth, googleSignIn, logoutGoogle, getAccessToken } from './services/firebase';
-import { generateSingleEmployeePdf, triggerDownload } from './services/pdfGenerator';
+import { KGBRecord, SKTemplateConfig, AppSession } from './types/kgb';
+import { DEFAULT_KGB_DATA, DEFAULT_TEMPLATE, fetchSpreadsheetData, ALL_KGB_YEARS, hasValueCForYear } from './services/googleSheets';
+import { initAuth, googleSignIn, logoutGoogle } from './services/firebase';
 import { Header } from './components/Header';
 import { DashboardStats } from './components/DashboardStats';
 import { FilterBar } from './components/FilterBar';
@@ -19,7 +18,7 @@ import { UnitKerjaPrintModal } from './components/UnitKerjaPrintModal';
 import { DriveExportModal } from './components/DriveExportModal';
 import { TemplateEditorModal } from './components/TemplateEditorModal';
 import { GlassyAuthModal } from './components/GlassyAuthModal';
-import { Check, CheckCircle2, AlertCircle, FileSpreadsheet, HardDrive, Printer, RotateCcw, FileText, Settings2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, FileSpreadsheet, RotateCcw, FileText } from 'lucide-react';
 import { getGajiPokok, parseMkYears } from './services/salaryTable';
 
 const STORAGE_KEY_DATA = 'kgb_app_records_v10_mulai_tanggal_auto';
@@ -32,7 +31,7 @@ const DEFAULT_DOCS_TEMPLATE_ID = '1HE3b6txpsid3vAqwxbmZu3p6sojQt4wmqN9jlml7L_Q';
 
 export default function App() {
   // ==========================================
-  // 1. Glassy Auth & Role Session State
+  // 1. Auth & Session State
   // ==========================================
   const [session, setSession] = useState<AppSession | null>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_SESSION);
@@ -43,26 +42,21 @@ export default function App() {
         console.error('Failed to parse cached session', e);
       }
     }
-    // No default session — force login page on first load
     return null;
   });
 
   // showAuthModal hanya untuk "Ganti Akun" saat sudah login.
   // Saat belum login, modal dipaksa terbuka via `isAuthModalOpen`.
   const [showAuthModal, setShowAuthModal] = useState(false);
-
-  // Modal login WAJIB terbuka jika belum ada session
   const isAuthModalOpen = !session || showAuthModal;
 
-  // ==========================================
-  // 2. Google Firebase Auth state (Sheets/Drive)
-  // ==========================================
+  // Google Auth State (Hanya untuk integrasi Sheets/Drive jika diperlukan)
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // ==========================================
-  // 3. Data state
+  // 2. Data & Template State
   // ==========================================
   const [records, setRecords] = useState<KGBRecord[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_DATA);
@@ -90,7 +84,6 @@ export default function App() {
     return DEFAULT_KGB_DATA;
   });
 
-  // Template state
   const [template, setTemplate] = useState<SKTemplateConfig>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_TEMPLATE);
     if (saved) {
@@ -99,7 +92,7 @@ export default function App() {
         return {
           ...DEFAULT_TEMPLATE,
           ...parsed,
-          templateMode: 'google_docs',
+          templateMode: 'built_in', // Default ke built_in/Docxtemplater
           googleDocsTemplateId: parsed.googleDocsTemplateId || DEFAULT_DOCS_TEMPLATE_ID,
           templateText: parsed.templateText || DEFAULT_TEMPLATE.templateText
         };
@@ -110,7 +103,9 @@ export default function App() {
     return { ...DEFAULT_TEMPLATE, googleDocsTemplateId: DEFAULT_DOCS_TEMPLATE_ID };
   });
 
-  // Spreadsheet config state
+  // ==========================================
+  // 3. Spreadsheet Config State
+  // ==========================================
   const [spreadsheetInput, setSpreadsheetInput] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEY_SHEET_ID) || DEFAULT_SPREADSHEET_ID;
   });
@@ -121,14 +116,15 @@ export default function App() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ title: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-  // Dynamic filter state
+  // ==========================================
+  // 4. Filter & Modal State
+  // ==========================================
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all');
   const [selectedUnitKerja, setSelectedUnitKerja] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
-  // Modals state
   const [previewRecord, setPreviewRecord] = useState<KGBRecord | null>(null);
   const [showSheetsModal, setShowSheetsModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -138,7 +134,7 @@ export default function App() {
   const [driveExportSingleUnit, setDriveExportSingleUnit] = useState<{ name: string; items: KGBRecord[] } | null>(null);
 
   // ==========================================
-  // Toast helper
+  // Toast Helper
   // ==========================================
   const showToast = (title: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage({ title, type });
@@ -146,7 +142,7 @@ export default function App() {
   };
 
   // ==========================================
-  // 4. Initialize Firebase Auth & Auto-fetch data
+  // 5. Firebase Auth Init (Untuk fitur Sheets/Drive)
   // ==========================================
   useEffect(() => {
     const unsubscribe = initAuth(
@@ -194,7 +190,7 @@ export default function App() {
       if (res) {
         setUser(res.user);
         setAccessToken(res.accessToken);
-        showToast('Berhasil login dengan akun Google! Data & Template otomatis dimuat.');
+        showToast('Berhasil login dengan akun Google!');
         await performAutoLoad(res.accessToken);
       }
     } catch (err: any) {
@@ -213,28 +209,25 @@ export default function App() {
   };
 
   // ==========================================
-  // 5. Glassy Role Session Handlers
+  // 6. Session Handlers
   // ==========================================
   const handleLoginSuccess = async (newSession: AppSession) => {
     setSession(newSession);
     localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(newSession));
-    setShowAuthModal(false); // tutup modal Ganti Akun (jika dibuka dari Header)
+    setShowAuthModal(false);
     showToast(
-      `Selamat datang, ${newSession.displayName}! Masuk sebagai ${newSession.role === 'admin' ? 'Admin (Akses Penuh)' : 'User (Hanya Melihat)'}.`,
+      `Selamat datang, ${newSession.displayName}! Masuk sebagai ${newSession.role === 'admin' ? 'Admin' : 'User'}.`,
       'success'
     );
-    // Auto-load data dari spreadsheet publik (tanpa Google auth)
+    
+    // Auto-load data dari spreadsheet publik (tanpa auth)
     try {
       const { records: fetchedRecords, template: fetchedTemplate } = await fetchSpreadsheetData(
-        DEFAULT_SPREADSHEET_ID,
-        null,
-        kgbSheetName,
-        templateSheetName
+        DEFAULT_SPREADSHEET_ID, null, kgbSheetName, templateSheetName
       );
       if (fetchedRecords && fetchedRecords.length > 0) {
         setRecords(fetchedRecords);
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(fetchedRecords));
-        showToast(`Data otomatis dimuat dari Spreadsheet (${fetchedRecords.length} baris).`, 'info');
       }
       if (fetchedTemplate) {
         setTemplate(prev => ({
@@ -251,18 +244,17 @@ export default function App() {
   const handleLogoutSession = () => {
     setSession(null);
     localStorage.removeItem(STORAGE_KEY_SESSION);
-    setShowAuthModal(false); // reset, karena `!session` akan memaksa modal terbuka
+    setShowAuthModal(false);
     showToast('Sesi role telah diakhiri. Silakan login kembali.', 'info');
   };
 
   // ==========================================
-  // 6. Compute dynamic years (acuan kolom T:AD 2022–2032)
+  // 7. Dynamic Filters & Data Computation
   // ==========================================
   const availableYears = useMemo(() => {
     const fromData = records
       .flatMap(r => [r.tahunKgb, ...(r.activeYears || [])])
       .filter((y): y is number => typeof y === 'number' && !isNaN(y));
-
     const combined = Array.from(new Set([...ALL_KGB_YEARS, ...fromData]));
     combined.sort((a, b) => a - b);
     return combined;
@@ -274,51 +266,31 @@ export default function App() {
     }
   }, [availableYears, selectedYear]);
 
-  // ==========================================
-  // 7. Dynamic months for selected year
-  // ==========================================
   const availableMonthsForSelectedYear = useMemo(() => {
     const matchingRecords = records.filter(r => hasValueCForYear(r, selectedYear));
     const months = matchingRecords
       .map(r => r.bulanKgb)
       .filter((m): m is number => typeof m === 'number' && m >= 1 && m <= 12);
-    const uniqueMonths = Array.from(new Set(months));
-    uniqueMonths.sort((a, b) => a - b);
-    return uniqueMonths;
+    return Array.from(new Set(months)).sort((a, b) => a - b);
   }, [records, selectedYear]);
 
   useEffect(() => {
     if (selectedMonth !== 'all' && !availableMonthsForSelectedYear.includes(selectedMonth)) {
-      if (availableMonthsForSelectedYear.length > 0) {
-        setSelectedMonth(availableMonthsForSelectedYear[0]);
-      } else {
-        setSelectedMonth('all');
-      }
+      setSelectedMonth(availableMonthsForSelectedYear.length > 0 ? availableMonthsForSelectedYear[0] : 'all');
     }
   }, [selectedYear, availableMonthsForSelectedYear, selectedMonth]);
 
-  // ==========================================
-  // 8. Available Unit Kerja for selected year
-  // ==========================================
   const availableUnitKerja = useMemo(() => {
     const matchingRecords = records.filter(r => hasValueCForYear(r, selectedYear));
-    const units = Array.from(new Set(matchingRecords.map(r => r.unitKerja.trim()).filter(Boolean)));
-    units.sort();
-    return units;
+    return Array.from(new Set(matchingRecords.map(r => r.unitKerja.trim()).filter(Boolean))).sort();
   }, [records, selectedYear]);
 
-  // ==========================================
-  // 9. Filtered records for selected year & month
-  // ==========================================
   const filteredRecords = useMemo(() => {
     return records
       .filter(r => {
         if (!hasValueCForYear(r, selectedYear)) return false;
         if (selectedMonth !== 'all' && r.bulanKgb !== selectedMonth) return false;
-        if (
-          selectedUnitKerja !== 'all' &&
-          r.unitKerja.trim().toLowerCase() !== selectedUnitKerja.trim().toLowerCase()
-        ) return false;
+        if (selectedUnitKerja !== 'all' && r.unitKerja.trim().toLowerCase() !== selectedUnitKerja.trim().toLowerCase()) return false;
 
         const currentNomorSk = r.yearDetails?.[selectedYear]?.nomorSk || r.nomorSk;
         if (statusFilter === 'pending' && Boolean(currentNomorSk && currentNomorSk.trim())) return false;
@@ -326,12 +298,11 @@ export default function App() {
 
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
-          const matchName = r.nama.toLowerCase().includes(q);
-          const matchNip = r.nip.toLowerCase().includes(q);
-          const matchJab = r.jabatan.toLowerCase().includes(q);
-          const matchUnit = r.unitKerja.toLowerCase().includes(q);
-          const matchSk = (currentNomorSk || '').toLowerCase().includes(q);
-          if (!matchName && !matchNip && !matchJab && !matchUnit && !matchSk) return false;
+          if (!r.nama.toLowerCase().includes(q) && 
+              !r.nip.toLowerCase().includes(q) && 
+              !r.jabatan.toLowerCase().includes(q) && 
+              !r.unitKerja.toLowerCase().includes(q) &&
+              !(currentNomorSk || '').toLowerCase().includes(q)) return false;
         }
         return true;
       })
@@ -348,7 +319,7 @@ export default function App() {
   }, [records, selectedYear, selectedMonth, selectedUnitKerja, statusFilter, searchQuery]);
 
   // ==========================================
-  // 10. Update single record (persisting per-year)
+  // 8. CRUD & Save Handlers
   // ==========================================
   const handleUpdateRecord = (id: string, updates: Partial<KGBRecord>) => {
     setRecords(prev =>
@@ -370,12 +341,9 @@ export default function App() {
     setHasUnsavedChanges(true);
   };
 
-  // ==========================================
-  // 11. Save single record
-  // ==========================================
   const handleSaveRecord = (id: string) => {
     if (session?.role !== 'admin') {
-      showToast('Aksi dibatasi: Hanya Admin (V3) yang dapat menyimpan data.', 'error');
+      showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan data.', 'error');
       return;
     }
     setRecords(prev => {
@@ -387,12 +355,9 @@ export default function App() {
     showToast('Data baris berhasil disimpan!');
   };
 
-  // ==========================================
-  // 12. Save all changes
-  // ==========================================
   const handleSaveAll = () => {
     if (session?.role !== 'admin') {
-      showToast('Aksi dibatasi: Hanya Admin (V3) yang dapat menyimpan seluruh perubahan.', 'error');
+      showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan seluruh perubahan.', 'error');
       return;
     }
     setRecords(prev => {
@@ -401,15 +366,12 @@ export default function App() {
       return updated;
     });
     setHasUnsavedChanges(false);
-    showToast('Seluruh perubahan data KGB berhasil disimpan ke penyimpanan lokal!');
+    showToast('Seluruh perubahan data KGB berhasil disimpan!');
   };
 
-  // ==========================================
-  // 13. Save template
-  // ==========================================
   const handleSaveTemplate = (newTemplate: SKTemplateConfig) => {
     if (session?.role !== 'admin') {
-      showToast('Aksi dibatasi: Hanya Admin (V3) yang dapat mengubah template SK.', 'error');
+      showToast('Aksi dibatasi: Hanya Admin yang dapat mengubah template SK.', 'error');
       return;
     }
     setTemplate(newTemplate);
@@ -418,7 +380,7 @@ export default function App() {
   };
 
   // ==========================================
-  // 14. Load from Google Sheets
+  // 9. Sync & Demo Data Handlers
   // ==========================================
   const handleLoadFromSheets = async () => {
     let cleanId = spreadsheetInput.trim();
@@ -426,7 +388,7 @@ export default function App() {
     if (urlMatch) cleanId = urlMatch[1];
 
     if (!cleanId) {
-      setSyncError('Masukkan Spreadsheet ID atau URL Google Sheets yang valid');
+      setSyncError('Masukkan Spreadsheet ID atau URL yang valid');
       return;
     }
 
@@ -446,7 +408,7 @@ export default function App() {
     }
 
     if (fetchedRecords.length === 0) {
-      setSyncError('Tidak ada baris data pegawai yang dapat dibaca dari sheet tersebut.');
+      setSyncError('Tidak ada data yang dapat dibaca dari sheet tersebut.');
       return;
     }
 
@@ -460,48 +422,34 @@ export default function App() {
     }
 
     setShowSheetsModal(false);
-    showToast(`Berhasil memuat ${fetchedRecords.length} data pegawai dari Google Sheets!`);
+    showToast(`Berhasil memuat ${fetchedRecords.length} data pegawai!`);
   };
 
-  // ==========================================
-  // 15. Load Demo Data
-  // ==========================================
   const handleLoadDemoData = () => {
     setRecords(DEFAULT_KGB_DATA);
     setTemplate(DEFAULT_TEMPLATE);
     localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(DEFAULT_KGB_DATA));
     localStorage.setItem(STORAGE_KEY_TEMPLATE, JSON.stringify(DEFAULT_TEMPLATE));
     setHasUnsavedChanges(false);
-    showToast('Data demo KGB dan Template standar berhasil dimuat!');
+    showToast('Data demo KGB berhasil dimuat ulang!');
   };
 
   // ==========================================
-  // 16. Single Print SK
+  // 10. Print & Export Handlers (DOCX)
   // ==========================================
   const handlePrintSingleSK = async (record: KGBRecord) => {
-    if (template.templateMode === 'google_docs' && template.googleDocsTemplateId && accessToken) {
-      showToast('Sedang membuat PDF dari Google Docs Template...', 'info');
-      try {
-        const { generateSKFromGoogleDocsTemplate } = await import('./services/googleDocs');
-        const { pdfBlob, filename } = await generateSKFromGoogleDocsTemplate(
-          template.googleDocsTemplateId, record, accessToken
-        );
-        triggerDownload(pdfBlob, filename);
-        showToast(`Berhasil mengunduh ${filename} (Output Resmi Google Docs)!`);
-        return;
-      } catch (err: any) {
-        console.warn('Google Docs generation fallback to local PDF:', err);
-        showToast(`Google Docs template: ${err.message || 'Menggunakan template bawaan'}.`, 'info');
-      }
+    showToast('Sedang membuat dokumen SK (Word)...', 'info');
+    try {
+      // Panggil generator Docxtemplater
+      const { generateDocxSK } = await import('./services/docxGenerator');
+      await generateDocxSK(record, template, selectedYear);
+      showToast(`Dokumen SK berhasil diunduh.`);
+    } catch (error: any) {
+      console.error('Gagal membuat dokumen SK:', error);
+      showToast(error.message || 'Gagal membuat dokumen SK.', 'error');
     }
-    const { blob, filename } = generateSingleEmployeePdf(record, template, selectedYear);
-    triggerDownload(blob, filename);
-    showToast(`Mengunduh dokumen: ${filename}`);
   };
 
-  // ==========================================
-  // 17. Drive Upload Handlers
-  // ==========================================
   const handleUploadSingleToDrive = (record: KGBRecord) => {
     setDriveExportSingleRecord(record);
     setDriveExportSingleUnit(null);
@@ -519,13 +467,13 @@ export default function App() {
   // ==========================================
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200 relative overflow-x-hidden">
-
-      {/* Ambient Blue & Cyan Glow Spheres */}
+      
+      {/* Background Ambient Glow */}
       <div className="fixed top-[-10%] left-[15%] w-[42rem] h-[42rem] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none -z-10" />
       <div className="fixed top-[35%] right-[-10%] w-[38rem] h-[38rem] bg-cyan-500/12 rounded-full blur-[130px] pointer-events-none -z-10" />
       <div className="fixed bottom-[-10%] left-[25%] w-[45rem] h-[45rem] bg-indigo-600/12 rounded-full blur-[150px] pointer-events-none -z-10" />
 
-      {/* Toast — di luar gate login agar tetap tampil saat login & logout */}
+      {/* Toast (Di luar gate agar selalu tampil saat login/logout) */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-[60] flex items-center gap-3 px-4.5 py-3 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.7)] border border-white/20 bg-slate-900/90 text-white text-xs backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
           {toastMessage.type === 'error' ? (
@@ -537,12 +485,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ============================================
-          LOGIN GATE — Satu-satunya instance GlassyAuthModal
-          - Terbuka otomatis jika `!session`
-          - Terbuka manual (Ganti Akun) via `setShowAuthModal(true)`
-          - Tidak bisa ditutup jika belum login
-         ============================================ */}
+      {/* LOGIN GATE */}
       <GlassyAuthModal
         isOpen={isAuthModalOpen}
         onClose={() => {
@@ -554,31 +497,22 @@ export default function App() {
         }}
         onLoginSuccess={handleLoginSuccess}
         currentSession={session}
-        onGoogleLogin={handleLogin}
-        isGoogleLoggingIn={isLoggingIn}
       />
 
-      {/* ============================================
-          MAIN APP — hanya dirender setelah login
-         ============================================ */}
+      {/* MAIN APP (Hanya dirender setelah login) */}
       {session && (
         <>
-          {/* Header */}
           <Header
             user={user}
             onLogin={handleLogin}
             onLogout={handleLogout}
             isLoggingIn={isLoggingIn}
             onOpenSheetsConfig={() => {
-              if (session?.role !== 'admin') {
-                showToast('Catatan: Akun User hanya dapat melihat konfigurasi Sheets.', 'info');
-              }
+              if (session?.role !== 'admin') showToast('Catatan: Akun User hanya dapat melihat konfigurasi Sheets.', 'info');
               setShowSheetsModal(true);
             }}
             onOpenTemplateEditor={() => {
-              if (session?.role !== 'admin') {
-                showToast('Catatan: Akun User hanya dapat melihat pratinjau template SK.', 'info');
-              }
+              if (session?.role !== 'admin') showToast('Catatan: Akun User hanya dapat melihat pratinjau template.', 'info');
               setShowTemplateModal(true);
             }}
             isSyncing={isSyncing}
@@ -591,9 +525,8 @@ export default function App() {
             onLogoutSession={handleLogoutSession}
           />
 
-          {/* Main Container */}
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 flex-1 w-full">
-
+            
             {/* Info Banner */}
             {!spreadsheetInput && (
               <div className="mb-6 p-4.5 bg-slate-900/60 backdrop-blur-2xl text-white rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.45)] border border-cyan-500/30 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-xs relative overflow-hidden group">
@@ -610,108 +543,59 @@ export default function App() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5 shrink-0">
-                  <button
-                    onClick={handleLoadDemoData}
-                    className="px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/15 font-semibold rounded-xl transition duration-300 flex items-center gap-1.5 active:scale-95"
-                    title="Muat ulang data contoh resmi"
-                  >
+                  <button onClick={handleLoadDemoData} className="px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/15 font-semibold rounded-xl transition duration-300 flex items-center gap-1.5 active:scale-95">
                     <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
                     <span>Reset Demo</span>
                   </button>
-                  <button
-                    onClick={() => setShowSheetsModal(true)}
-                    className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black rounded-xl transition duration-300 shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95"
-                  >
+                  <button onClick={() => setShowSheetsModal(true)} className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black rounded-xl transition duration-300 shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95">
                     Koneksi Sheets
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Dashboard Statistics */}
-            <DashboardStats
-              records={filteredRecords}
-              allRecords={records}
-              selectedYear={selectedYear}
-              selectedMonth={selectedMonth}
-            />
+            <DashboardStats records={filteredRecords} allRecords={records} selectedYear={selectedYear} selectedMonth={selectedMonth} />
 
             {/* Banner Menu Format SK */}
             <div className="mb-6 p-4 sm:p-5 bg-slate-900/60 backdrop-blur-2xl border border-white/10 hover:border-cyan-500/30 rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.45)] flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition duration-300">
               <div className="flex items-start sm:items-center gap-3.5">
-                <div className={`p-2.5 sm:p-3 rounded-2xl shrink-0 ${
-                  template.templateMode === 'google_docs'
-                    ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-                    : 'bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                }`}>
+                <div className="p-2.5 sm:p-3 rounded-2xl shrink-0 bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-bold text-white tracking-tight">
-                      Menu Format SK: {template.templateMode === 'google_docs' ? 'Template Google Docs' : 'Template SK Resmi PPU (DB KGB & TEMPLATE)'}
-                    </h3>
-                    <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full border ${
-                      template.templateMode === 'google_docs'
-                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.25)]'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-400/40'
-                    }`}>
-                      {template.templateMode === 'google_docs' ? 'Mode Google Docs Aktif' : 'Mode Template Bawaan'}
+                    <h3 className="text-sm font-bold text-white tracking-tight">Menu Format SK: Template Word (DocxTemplater)</h3>
+                    <span className="px-2.5 py-0.5 text-[10px] font-bold rounded-full border bg-cyan-500/20 text-cyan-300 border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.25)]">
+                      Cetak Tanpa Login
                     </span>
-                    {template.googleDocsTemplateId && (
-                      <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono font-medium">
-                        Google Docs ID Terhubung
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    {template.templateMode === 'google_docs'
-                      ? 'Output PDF dihasilkan langsung dari Google Docs Anda dengan mempertahankan layout, font, dan format asli 100% presisi.'
-                      : 'Tata letak otomatis sesuai sheet TEMPLATE & DB KGB (A10, C24, I34–I50, C51, I55) & Tanda Tangan SRIKANDI.'}
+                    Dokumen SK dihasilkan langsung dari file template `.docx` tanpa memerlukan koneksi API Google Docs.
                   </p>
                 </div>
               </div>
-
               <div className="flex items-center gap-2 shrink-0 self-start md:self-auto">
-                <button
-                  onClick={() => setShowTemplateModal(true)}
-                  className="px-4 py-2 text-xs font-black rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.35)] flex items-center gap-2 transition active:scale-95"
-                  title="Buka Pengaturan Menu Format SK"
-                >
+                <button onClick={() => setShowTemplateModal(true)} className="px-4 py-2 text-xs font-black rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.35)] flex items-center gap-2 transition active:scale-95">
                   <FileText className="w-4 h-4 text-slate-950" />
                   <span>Menu Format SK</span>
                 </button>
               </div>
             </div>
 
-            {/* Dynamic Filters Bar */}
             <FilterBar
-              years={availableYears}
-              selectedYear={selectedYear}
-              onSelectYear={setSelectedYear}
-              availableMonths={availableMonthsForSelectedYear}
-              selectedMonth={selectedMonth}
-              onSelectMonth={setSelectedMonth}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              selectedUnitKerja={selectedUnitKerja}
-              onSelectUnitKerja={setSelectedUnitKerja}
-              availableUnitKerja={availableUnitKerja}
-              statusFilter={statusFilter}
-              onStatusFilterChange={setStatusFilter}
+              years={availableYears} selectedYear={selectedYear} onSelectYear={setSelectedYear}
+              availableMonths={availableMonthsForSelectedYear} selectedMonth={selectedMonth} onSelectMonth={setSelectedMonth}
+              searchQuery={searchQuery} onSearchChange={setSearchQuery}
+              selectedUnitKerja={selectedUnitKerja} onSelectUnitKerja={setSelectedUnitKerja} availableUnitKerja={availableUnitKerja}
+              statusFilter={statusFilter} onStatusFilterChange={setStatusFilter}
               onOpenUnitKerjaPrintModal={() => setShowUnitKerjaPrintModal(true)}
-              onOpenDriveExportModal={() => {
-                setDriveExportSingleRecord(null);
-                setDriveExportSingleUnit(null);
-                setShowDriveExportModal(true);
-              }}
+              onOpenDriveExportModal={() => { setDriveExportSingleRecord(null); setDriveExportSingleUnit(null); setShowDriveExportModal(true); }}
               isDriveReady={Boolean(user && accessToken)}
               onOpenTemplateEditor={() => setShowTemplateModal(true)}
               templateMode={template.templateMode}
               hasGoogleDoc={Boolean(template.googleDocsTemplateId)}
             />
 
-            {/* KGB Records Table */}
             <KGBTable
               records={filteredRecords}
               onUpdateRecord={handleUpdateRecord}
@@ -725,22 +609,19 @@ export default function App() {
 
           </main>
 
-          {/* Footer */}
           <footer className="bg-slate-950/70 backdrop-blur-xl border-t border-white/10 py-5 text-center text-xs text-slate-400">
             <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                <span>Sistem Informasi Kenaikan Gaji Berkala (KGB) &bull; Terintegrasi Google Sheets & Google Drive</span>
+                <span>Sistem Informasi Kenaikan Gaji Berkala (KGB) &bull; Terintegrasi Google Sheets & DocxTemplater</span>
               </div>
               <div className="text-[11px] text-slate-400 font-mono">
-                KGB Perpres No. 11/2024 &bull; Format Standar Surat Pemberitahuan BKN
+                KGB Perpres No. 11/2024 &bull; Format Standar BKN
               </div>
             </div>
           </footer>
 
-          {/* ============================================
-              Other Modals (hanya aktif saat sudah login)
-             ============================================ */}
+          {/* Modals */}
           {previewRecord && (
             <SKPreviewModal
               record={previewRecord}
@@ -756,61 +637,40 @@ export default function App() {
 
           {showSheetsModal && (
             <SheetsConfigModal
-              spreadsheetInput={spreadsheetInput}
-              onSpreadsheetInputChange={setSpreadsheetInput}
-              kgbSheetName={kgbSheetName}
-              onKgbSheetNameChange={setKgbSheetName}
-              templateSheetName={templateSheetName}
-              onTemplateSheetNameChange={setTemplateSheetName}
-              onLoadFromSheets={handleLoadFromSheets}
-              onLoadDemoData={handleLoadDemoData}
-              isLoading={isSyncing}
-              error={syncError}
-              onClose={() => setShowSheetsModal(false)}
-              accessToken={accessToken}
-              onNeedLogin={handleLogin}
+              spreadsheetInput={spreadsheetInput} onSpreadsheetInputChange={setSpreadsheetInput}
+              kgbSheetName={kgbSheetName} onKgbSheetNameChange={setKgbSheetName}
+              templateSheetName={templateSheetName} onTemplateSheetNameChange={setTemplateSheetName}
+              onLoadFromSheets={handleLoadFromSheets} onLoadDemoData={handleLoadDemoData}
+              isLoading={isSyncing} error={syncError} onClose={() => setShowSheetsModal(false)}
+              accessToken={accessToken} onNeedLogin={handleLogin}
             />
           )}
 
           {showTemplateModal && (
             <TemplateEditorModal
-              template={template}
-              onSaveTemplate={handleSaveTemplate}
-              onClose={() => setShowTemplateModal(false)}
-              accessToken={accessToken}
-              sampleRecord={filteredRecords[0] || records[0]}
+              template={template} onSaveTemplate={handleSaveTemplate} onClose={() => setShowTemplateModal(false)}
+              accessToken={accessToken} sampleRecord={filteredRecords[0] || records[0]}
             />
           )}
 
           {showUnitKerjaPrintModal && (
             <UnitKerjaPrintModal
-              records={filteredRecords}
-              template={template}
-              onClose={() => setShowUnitKerjaPrintModal(false)}
-              onUploadUnitKerjaToDrive={handleUploadUnitKerjaToDrive}
-              isDriveReady={Boolean(user && accessToken)}
+              records={filteredRecords} template={template} onClose={() => setShowUnitKerjaPrintModal(false)}
+              onUploadUnitKerjaToDrive={handleUploadUnitKerjaToDrive} isDriveReady={Boolean(user && accessToken)}
               selectedYear={selectedYear}
             />
           )}
 
           {showDriveExportModal && (
             <DriveExportModal
-              records={filteredRecords}
-              template={template}
-              accessToken={accessToken}
-              onClose={() => {
-                setShowDriveExportModal(false);
-                setDriveExportSingleRecord(null);
-                setDriveExportSingleUnit(null);
-              }}
-              singleRecord={driveExportSingleRecord}
-              singleUnitKerja={driveExportSingleUnit}
+              records={filteredRecords} template={template} accessToken={accessToken}
+              onClose={() => { setShowDriveExportModal(false); setDriveExportSingleRecord(null); setDriveExportSingleUnit(null); }}
+              singleRecord={driveExportSingleRecord} singleUnitKerja={driveExportSingleUnit}
               onNeedLogin={handleLogin}
             />
           )}
         </>
       )}
-
     </div>
   );
 }
