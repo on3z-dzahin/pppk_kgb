@@ -1,0 +1,6 @@
+{
+  "name": "KGB Online - Kenaikan Gaji Berkala",
+  "description": "Dashboard interaktif manajemen dan cetak SK Kenaikan Gaji Berkala (KGB) real-time terintegrasi Google Sheets dan Google Drive.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
