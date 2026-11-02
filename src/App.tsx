@@ -41,15 +41,11 @@ export default function App() {
         console.error('Failed to parse cached session', e);
       }
     }
-    // Default session: Admin (V3)
-    return {
-      username: 'V3',
-      role: 'admin',
-      displayName: 'Administrator (V3)',
-      loginTime: new Date().toISOString()
-    };
+    // No default session — force login page on first load
+    return null;
   });
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   // Google Firebase Auth state
   const [user, setUser] = useState<User | null>(null);
@@ -214,7 +210,7 @@ export default function App() {
   };
 
   // Glassy Session Handlers
-  const handleLoginSuccess = (newSession: AppSession) => {
+const handleLoginSuccess = async (newSession: AppSession) => {
     setSession(newSession);
     localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(newSession));
     setShowAuthModal(false);
@@ -222,6 +218,29 @@ export default function App() {
       `Selamat datang, ${newSession.displayName}! Masuk sebagai ${newSession.role === 'admin' ? 'Admin (Akses Penuh)' : 'User (Hanya Melihat)'}.`,
       'success'
     );
+    // Auto-load data from default public spreadsheet (no login required)
+    try {
+      const { records: fetchedRecords, template: fetchedTemplate } = await fetchSpreadsheetData(
+        DEFAULT_SPREADSHEET_ID,
+        null, // no token — use public GViz API
+        kgbSheetName,
+        templateSheetName
+      );
+      if (fetchedRecords && fetchedRecords.length > 0) {
+        setRecords(fetchedRecords);
+        localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(fetchedRecords));
+        showToast(`Data otomatis dimuat dari Spreadsheet (${fetchedRecords.length} baris).`, 'info');
+      }
+      if (fetchedTemplate) {
+        setTemplate(prev => ({
+          ...prev,
+          ...fetchedTemplate,
+          googleDocsTemplateId: prev.googleDocsTemplateId || DEFAULT_DOCS_TEMPLATE_ID
+        }));
+      }
+    } catch (e) {
+      console.warn('Auto-load from default spreadsheet failed, using demo data:', e);
+    }
   };
 
   const handleLogoutSession = () => {
@@ -510,20 +529,33 @@ export default function App() {
       <div className="fixed top-[35%] right-[-10%] w-[38rem] h-[38rem] bg-cyan-500/12 rounded-full blur-[130px] pointer-events-none -z-10" />
       <div className="fixed bottom-[-10%] left-[25%] w-[45rem] h-[45rem] bg-indigo-600/12 rounded-full blur-[150px] pointer-events-none -z-10" />
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4.5 py-3 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.7)] border border-white/20 bg-slate-900/90 text-white text-xs backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {toastMessage.type === 'error' ? (
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
-          )}
-          <span className="font-semibold tracking-wide">{toastMessage.title}</span>
-        </div>
-      )}
+      {/* Glassy Login / Auth Modal — shown first before session established */}
+      <GlassyAuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+        currentSession={session}
+        onGoogleLogin={handleLogin}
+        isGoogleLoggingIn={isGoogleLoggingIn}
+      />
 
-      {/* Header */}
-      <Header
+      {/* Main App — only rendered after login */}
+      {session && (
+        <>
+          {/* Toast Notification */}
+          {toastMessage && (
+            <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4.5 py-3 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.7)] border border-white/20 bg-slate-900/90 text-white text-xs backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {toastMessage.type === 'error' ? (
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+              )}
+              <span className="font-semibold tracking-wide">{toastMessage.title}</span>
+            </div>
+          )}
+
+          {/* Header */}
+          <Header
         user={user}
         onLogin={handleLogin}
         onLogout={handleLogout}
