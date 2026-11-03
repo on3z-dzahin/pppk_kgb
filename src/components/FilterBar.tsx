@@ -79,7 +79,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </select>
           </div>
           <span className="text-[10px] text-cyan-400/80 font-mono mt-1 block">
-            Acuan Kolom T:AD (2022 s/d 2032)
+            
           </span>
         </div>
 
@@ -89,7 +89,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <div className="p-1 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
               <Filter className="w-3.5 h-3.5" />
             </div>
-            <span>Bulan Acuan Kolom K</span>
+            <span>Pilih Bulan</span>
           </label>
           <div className="relative">
             <select
@@ -118,7 +118,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <div className="p-1 rounded-md bg-purple-500/20 text-purple-400 border border-purple-500/30">
               <Building className="w-3.5 h-3.5" />
             </div>
-            <span>Unit Kerja / Instansi (Kolom S)</span>
+            <span>Unit Kerja</span>
           </label>
           <select
             value={selectedUnitKerja}
@@ -135,7 +135,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             ))}
           </select>
           <span className="text-[10px] text-slate-400 mt-1 block">
-            Saring cepat daftar pegawai per OPD / Instansi
+            
           </span>
         </div>
 
