@@ -20,6 +20,7 @@ import { TemplateEditorModal } from './components/TemplateEditorModal';
 import { GlassyAuthModal } from './components/GlassyAuthModal';
 import { CheckCircle2, AlertCircle, FileSpreadsheet, RotateCcw, FileText } from 'lucide-react';
 import { getGajiPokok, parseMkYears } from './services/salaryTable';
+import { generatePdfViaGoogleAppsScript } from "./services/googleAppsScript";
 
 const STORAGE_KEY_DATA = 'kgb_app_records_v10_mulai_tanggal_auto';
 const STORAGE_KEY_TEMPLATE = 'kgb_app_template_v5_gdocs_master';
@@ -437,9 +438,7 @@ export default function App() {
   // ==========================================
     // 10. Print & Export Handlers (DOCX)
   // ==========================================
-  import { generatePdfViaGoogleAppsScript } from './services/googleAppsScript';
-
-const handlePrintSingleSK = async (record: KGBRecord) => {
+  const handlePrintSingleSK = async (record: KGBRecord) => {
   showToast('Sedang membuat PDF via Google Docs...', 'info');
   try {
     await generatePdfViaGoogleAppsScript(record, selectedYear);
