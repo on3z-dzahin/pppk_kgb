@@ -98,7 +98,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               className="w-full text-sm font-bold bg-slate-950/70 border border-emerald-500/30 rounded-xl px-3.5 py-2.5 text-emerald-300 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 shadow-inner transition cursor-pointer"
             >
               <option value="all" className="bg-slate-900 text-white font-medium">
-                Semua Bulan ({availableMonths.length} bulan terdaftar value &quot;C&quot;)
+                Semua Bulan ({availableMonths.length} )
               </option>
               {availableMonths.map(m => (
                 <option key={m} value={m} className="bg-slate-900 text-white font-medium">
