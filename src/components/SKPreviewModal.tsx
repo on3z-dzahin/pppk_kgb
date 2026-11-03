@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { KGBRecord, SKTemplateConfig, getSKRenderData } from '../types/kgb';
-// 1. IMPORT FUNGSI DOCX YANG BARU
-import { generateDocxSK } from '../services/docxGenerator'; 
 import { LOGO_PENAJAM_BASE64 } from '../services/logoPenajam';
 import { X, Download, HardDrive, FileText, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { generatePdfViaGoogleAppsScript } from '../services/googleAppsScript';
@@ -35,21 +33,19 @@ export const SKPreviewModal: React.FC<SKPreviewModalProps> = ({
   const skData = getSKRenderData(record, targetYear);
   const nomorFormatted = skData.nomorLengkap || `800.1.11.13/${skData.nomorUrut}/BKPSDM-PPPK/${skData.bulanRomawi}/${skData.tahunPenetapan}`;
 
-  // 2. UBAH FUNGSI INI UNTUK MEMANGGIL DOCXTEMPLATER
-  
-
-const handleDownloadPdf = async () => {
-  setIsGeneratingDocs(true);
-  setStatusNotice('Sedang membuat PDF via Google Docs...');
-  try {
-    await generatePdfViaGoogleAppsScript(record, targetYear);
-    setStatusNotice(`Berhasil mengunduh PDF!`);
-  } catch (err: any) {
-    setStatusNotice(`Gagal: ${err.message}`);
-  } finally {
-    setIsGeneratingDocs(false);
-  }
-};
+  // FUNGSI YANG DIGUNAKAN UNTUK TOMBOL
+  const handleDownloadPdf = async () => {
+    setIsGeneratingDocs(true);
+    setStatusNotice('Sedang membuat PDF via Google Docs...');
+    try {
+      await generatePdfViaGoogleAppsScript(record, targetYear);
+      setStatusNotice(`Berhasil mengunduh PDF!`);
+    } catch (err: any) {
+      setStatusNotice(`Gagal: ${err.message}`);
+    } finally {
+      setIsGeneratingDocs(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
@@ -67,7 +63,7 @@ const handleDownloadPdf = async () => {
                   Pratinjau Surat Keputusan (SK) KGB
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
-                  Template Word (DocxTemplater)
+                  Template Google Docs (PDF)
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-1 font-mono">
@@ -77,15 +73,15 @@ const handleDownloadPdf = async () => {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* 3. TOMBOL UNDUH WORD (ATAS) */}
+            {/* TOMBOL UNDUH PDF (ATAS) */}
             <button
-              onClick={handleDownloadDocx}
+              onClick={handleDownloadPdf}
               disabled={isGeneratingDocs}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white transition shadow-[0_0_20px_rgba(59,130,246,0.35)] active:scale-95 cursor-pointer disabled:opacity-50 border border-cyan-400/40"
-              title="Unduh Dokumen SK dalam format Word (.docx)"
+              title="Unduh Dokumen SK dalam format PDF"
             >
               <Download className="w-4 h-4 text-cyan-200" />
-              <span>{isGeneratingDocs ? 'Memproses...' : 'Unduh Word (.docx)'}</span>
+              <span>{isGeneratingDocs ? 'Memproses...' : 'Unduh PDF'}</span>
             </button>
 
             {/* Simpan ke Drive */}
@@ -259,10 +255,10 @@ const handleDownloadPdf = async () => {
             <span className="font-semibold text-slate-800">{skData.namaLengkap_I34}</span><span>&bull;</span><span>Gaji Pokok Baru: {skData.gajiBaruFull_I46.split('(')[0]}</span>
           </div>
           <div className="flex items-center gap-2">
-            {/* 4. TOMBOL UNDUH WORD (BAWAH) */}
-            <button onClick={handleDownloadDocx} disabled={isGeneratingDocs} className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-xs transition cursor-pointer disabled:opacity-50">
+            {/* TOMBOL UNDUH PDF (BAWAH) */}
+            <button onClick={handleDownloadPdf} disabled={isGeneratingDocs} className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-xs transition cursor-pointer disabled:opacity-50">
               <Download className="w-4 h-4" />
-              <span>Unduh Word (.docx)</span>
+              <span>Unduh PDF</span>
             </button>
             <button onClick={onClose} className="px-3.5 py-1.5 bg-white hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg font-medium transition cursor-pointer">
               Tutup
