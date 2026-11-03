@@ -80,7 +80,7 @@ export const KGBTable: React.FC<KGBTableProps> = ({
             Daftar Pegawai KGB ({records.length} data)
           </span>
           <span className="text-[11px] text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/30 font-mono">
-            Tahun {selectedYear} &bull;  &quot;C&quot; 
+             {selectedYear} &bull;  ; 
           </span>
         </div>
 
