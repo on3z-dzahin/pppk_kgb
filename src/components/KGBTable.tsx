@@ -168,19 +168,19 @@ export const KGBTable: React.FC<KGBTableProps> = ({
                 Nomor SK <span className="text-amber-400 font-normal lowercase">(diisi manual)</span>
               </th>
               <th className="py-3.5 px-3 min-w-[180px]">
-                Nama Pegawai <span className="text-slate-500 font-normal">(Kolom B)</span>
+                Nama Pegawai <span className="text-slate-500 font-normal"></span>
               </th>
               <th className="py-3.5 px-3 min-w-[150px]">
-                NIP <span className="text-slate-500 font-normal">(Kolom C)</span>
+                NIP <span className="text-slate-500 font-normal"></span>
               </th>
               <th className="py-3.5 px-3 min-w-[140px]">
-                Jabatan <span className="text-slate-500 font-normal">(Kolom R)</span>
+                Jabatan <span className="text-slate-500 font-normal"></span>
               </th>
               <th className="py-3.5 px-3 min-w-[160px]">
-                Unit Kerja <span className="text-slate-500 font-normal">(Kolom S)</span>
+                Unit Kerja <span className="text-slate-500 font-normal"></span>
               </th>
               <th className="py-3.5 px-3 min-w-[155px]">
-                Mulai Tanggal <span className="text-cyan-400 font-normal lowercase">(Kolom P)</span>
+                Mulai Tanggal <span className="text-cyan-400 font-normal lowercase"></span>
               </th>
               <th className="py-3.5 px-3 min-w-[140px]">
                 MK Sebelum
