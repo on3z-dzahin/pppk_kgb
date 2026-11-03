@@ -4,6 +4,7 @@ import { KGBRecord, SKTemplateConfig, getSKRenderData } from '../types/kgb';
 import { generateDocxSK } from '../services/docxGenerator'; 
 import { LOGO_PENAJAM_BASE64 } from '../services/logoPenajam';
 import { X, Download, HardDrive, FileText, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { generatePdfViaGoogleAppsScript } from '../services/googleAppsScript';
 
 interface SKPreviewModalProps {
   record: KGBRecord | null;
@@ -35,7 +36,7 @@ export const SKPreviewModal: React.FC<SKPreviewModalProps> = ({
   const nomorFormatted = skData.nomorLengkap || `800.1.11.13/${skData.nomorUrut}/BKPSDM-PPPK/${skData.bulanRomawi}/${skData.tahunPenetapan}`;
 
   // 2. UBAH FUNGSI INI UNTUK MEMANGGIL DOCXTEMPLATER
-  import { generatePdfViaGoogleAppsScript } from '../services/googleAppsScript';
+  
 
 const handleDownloadPdf = async () => {
   setIsGeneratingDocs(true);
