@@ -77,10 +77,10 @@ export const KGBTable: React.FC<KGBTableProps> = ({
       <div className="p-4 bg-slate-950/70 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 backdrop-blur-md">
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="text-xs font-bold text-white tracking-wide">
-            Daftar Pegawai KGB ({records.length} data ditemukan)
+            Daftar Pegawai KGB ({records.length} data)
           </span>
           <span className="text-[11px] text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/30 font-mono">
-            Tahun {selectedYear} &bull; Filter Value &quot;C&quot; di Kolom T:AD
+            Tahun {selectedYear} &bull;  &quot;C&quot; 
           </span>
         </div>
 
