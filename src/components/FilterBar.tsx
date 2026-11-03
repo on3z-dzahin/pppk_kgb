@@ -108,7 +108,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </select>
           </div>
           <span className="text-[10px] text-emerald-400/80 font-mono mt-1 block">
-            Bulan Kolom K value &quot;C&quot; ({selectedYear})
+            value &quot;C&quot; ({selectedYear})
           </span>
         </div>
 
