@@ -2,7 +2,7 @@ import { saveAs } from 'file-saver';
 import { KGBRecord, getSKRenderData } from '../types/kgb';
 
 // Ganti dengan URL Web App yang Anda dapatkan dari Google Apps Script
-const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzsWKwkB_nPxcLqPVgl0OJOt8eL_80d-zk7nRTFZc5nOhOMp8sIlDxNdYNpuUiLlrPCKw/exec';
 
 export async function generatePdfViaGoogleAppsScript(record: KGBRecord, selectedYear: number) {
   // Siapkan data yang akan dikirim (gunakan getSKRenderData yang sudah ada)
