@@ -35,18 +35,20 @@ export const SKPreviewModal: React.FC<SKPreviewModalProps> = ({
   const nomorFormatted = skData.nomorLengkap || `800.1.11.13/${skData.nomorUrut}/BKPSDM-PPPK/${skData.bulanRomawi}/${skData.tahunPenetapan}`;
 
   // 2. UBAH FUNGSI INI UNTUK MEMANGGIL DOCXTEMPLATER
-  const handleDownloadDocx = async () => {
-    setIsGeneratingDocs(true);
-    setStatusNotice('Sedang menyiapkan dokumen Word (.docx)...');
-    try {
-      await generateDocxSK(record, template, targetYear);
-      setStatusNotice(`Berhasil mengunduh dokumen Word untuk ${record.nama}!`);
-    } catch (err: any) {
-      setStatusNotice(`Gagal mengunduh: ${err.message || 'Kesalahan sistem'}`);
-    } finally {
-      setIsGeneratingDocs(false);
-    }
-  };
+  import { generatePdfViaGoogleAppsScript } from '../services/googleAppsScript';
+
+const handleDownloadPdf = async () => {
+  setIsGeneratingDocs(true);
+  setStatusNotice('Sedang membuat PDF via Google Docs...');
+  try {
+    await generatePdfViaGoogleAppsScript(record, targetYear);
+    setStatusNotice(`Berhasil mengunduh PDF!`);
+  } catch (err: any) {
+    setStatusNotice(`Gagal: ${err.message}`);
+  } finally {
+    setIsGeneratingDocs(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
