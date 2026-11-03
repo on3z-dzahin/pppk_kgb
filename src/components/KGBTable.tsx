@@ -274,7 +274,7 @@ export const KGBTable: React.FC<KGBTableProps> = ({
                       <span>{calculateMulaiTanggal(r.kolomK || r.tanggalAcuanK, selectedYear, r.tmtKgb)}</span>
                     </div>
                     <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                      Kolom K: {r.kolomK || r.tanggalAcuanK || '1 Juni 2025'}
+                      TMT Lama: {r.kolomK || r.tanggalAcuanK || '1 Juni 2025'}
                     </div>
                   </td>
 
