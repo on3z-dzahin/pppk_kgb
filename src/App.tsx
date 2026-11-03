@@ -437,21 +437,18 @@ export default function App() {
   // ==========================================
     // 10. Print & Export Handlers (DOCX)
   // ==========================================
-  const handlePrintSingleSK = async (record: KGBRecord) => {
-    showToast('Sedang membuat dokumen SK (Word)...', 'info');
-    try {
-      // 1. Panggil Docxtemplater
-      const { generateDocxSK } = await import('./services/docxGenerator');
-      
-      // 2. Jalankan fungsi pembuat docx
-      await generateDocxSK(record, template, selectedYear);
-      
-      showToast(`Dokumen SK berhasil diunduh.`);
-    } catch (error: any) {
-      console.error('Gagal membuat dokumen SK:', error);
-      showToast(error.message || 'Gagal membuat dokumen SK.', 'error');
-    }
-  };
+  import { generatePdfViaGoogleAppsScript } from './services/googleAppsScript';
+
+const handlePrintSingleSK = async (record: KGBRecord) => {
+  showToast('Sedang membuat PDF via Google Docs...', 'info');
+  try {
+    await generatePdfViaGoogleAppsScript(record, selectedYear);
+    showToast(`PDF berhasil diunduh.`);
+  } catch (error: any) {
+    console.error('Gagal:', error);
+    showToast(error.message || 'Gagal membuat PDF.', 'error');
+  }
+};
 
   const handleUploadSingleToDrive = (record: KGBRecord) => {
     setDriveExportSingleRecord(record);
