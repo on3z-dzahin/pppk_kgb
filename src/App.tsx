@@ -21,6 +21,7 @@ import { GlassyAuthModal } from './components/GlassyAuthModal';
 import { CheckCircle2, AlertCircle, FileSpreadsheet, RotateCcw, FileText } from 'lucide-react';
 import { getGajiPokok, parseMkYears } from './services/salaryTable';
 import { generatePdfViaGoogleAppsScript } from "./services/googleAppsScript";
+import { fetchSpreadsheetData, saveToRecordSheet } from './services/googleSheets'; // Tambahkan saveToRecordSheet
 
 const STORAGE_KEY_DATA = 'kgb_app_records_v10_mulai_tanggal_auto';
 const STORAGE_KEY_TEMPLATE = 'kgb_app_template_v5_gdocs_master';
