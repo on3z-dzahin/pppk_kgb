@@ -224,7 +224,7 @@ export const GlassyAuthModal: React.FC<GlassyAuthModalProps> = ({
           </button>
         </form>
 
-              {/* Mengganti teks info lama dengan logo BKPSDM (Ukuran Diperbesar) */}
+           {/* Mengganti teks info lama dengan logo BKPSDM (Ukuran Diperbesar) */}
         <div className="mt-5 pt-4 border-t border-white/10 flex justify-center items-center opacity-90 hover:opacity-100 transition duration-300">
           <img 
             src="/logo-neon.png" 
@@ -232,4 +232,7 @@ export const GlassyAuthModal: React.FC<GlassyAuthModalProps> = ({
             className="h-16 w-auto object-contain filter drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]" 
           />
         </div>
-
+      </motion.div>
+    </div>
+  );
+};
