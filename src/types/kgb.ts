@@ -429,7 +429,114 @@ export function calculateMulaiTanggal(
 /**
  * Build complete SK Render Data matching the Penajam Paser Utara SK Decree:
  */
-// Pastikan ada tulisan "export" di depannya
 export function getSKRenderData(record: KGBRecord, defaultYear: number = 2026): SKRenderData {
-  // ... isi kode ...
+  const skInfo = buildFullNomorSK(record.nomorSk || record.kolomA, record.tanggalPenetapan, defaultYear);
+  const nomorSK_A10 = `NOMOR : ${skInfo.nomorLengkap}`;
+  const judulSK_C24 = `KEPUTUSAN KEPALA BADAN KEPEGAWAIAN DAN PENGEMBANGAN SUMBER DAYA MANUSIA NOMOR ${skInfo.nomorLengkap} TENTANG KENAIKAN GAJI BERKALA.`;
+
+  let namaLengkap_I34 = record.nama || record.kolomB || '-';
+  if (record.kolomD || record.kolomE) {
+    const gelarDepan = record.kolomD ? `${record.kolomD.trim()} ` : '';
+    const baseNama = (record.kolomB || record.nama || '').trim();
+    let gelarBelakang = record.kolomE ? (record.kolomE.trim().startsWith(',') ? record.kolomE.trim() : `, ${record.kolomE.trim()}`) : '';
+    namaLengkap_I34 = `${gelarDepan}${baseNama}${gelarBelakang}`;
+  }
+  
+  const nip_I35 = record.kolomC || record.nip || '-';
+  const gol = record.kolomF || record.pangkatGol || '-';
+  const jab = record.kolomR || record.jabatan || '-';
+  const golJabatan_I36 = `${gol} / ${jab}`;
+  const unitKerja_I39 = (record.kolomS || record.unitKerja || '-').toUpperCase();
+  const masaPerjanjian = record.masaPerjanjianKerja || '-';
+  const perpanjanganPerjanjian = record.perpanjanganPerjanjianKerja || '-';
+
+  // Logika Gaji & MK
+  const mkSebelumYears = parseMkYears(record.mkSebelum);
+  const mkSesudahYears = parseMkYears(record.mkSesudah);
+  const isValidMK = (record.kolomM !== undefined && record.kolomM !== '') || record.mkSebelum;
+  
+  let resolvedGajiLamaNumeric = 0;
+  let resolvedGajiBaruNumeric = 0;
+  let gajiLamaFull_I44 = '-';
+  let gajiBaruFull_I46 = '-';
+  let mkGolongan_I48 = '-';
+
+  if (isValidMK) {
+    resolvedGajiLamaNumeric = getGajiPokok(gol, mkSebelumYears);
+    resolvedGajiBaruNumeric = getGajiPokok(gol, mkSesudahYears);
+    if (typeof record.gajiLama === 'number' && record.gajiLama >= 1800000) resolvedGajiLamaNumeric = record.gajiLama;
+    if (typeof record.gajiBaru === 'number' && record.gajiBaru >= 1800000) resolvedGajiBaruNumeric = record.gajiBaru;
+    
+    gajiLamaFull_I44 = formatGajiTerbilang(resolvedGajiLamaNumeric);
+    gajiBaruFull_I46 = formatGajiTerbilang(resolvedGajiBaruNumeric);
+
+    if (record.kolomM && record.kolomN) {
+      mkGolongan_I48 = `${String(record.kolomM).padStart(2, '0')} tahun ${String(record.kolomN).padStart(2, '0')} bulan`;
+    } else {
+      mkGolongan_I48 = record.mkSesudah || '-';
+    }
+  }
+
+  // Logika Poin b, c, d, e
+  const yearDetail = record.yearDetails?.[defaultYear];
+  const isSavedToRecord = yearDetail && yearDetail.nomorSk;
+
+  let skLamaPejabat = '-';
+  let skLamaTanggal = '-';
+  let skLamaNomor_I40 = '-';
+  let skLamaTmt_I43 = '-';
+  let skLamaMk = '-';
+
+  if (isSavedToRecord) {
+    skLamaPejabat = 'KEPALA BKPSDM'; 
+    skLamaTanggal = yearDetail.tanggalPenetapan ? formatIndoDate(yearDetail.tanggalPenetapan) : '-';
+    skLamaNomor_I40 = yearDetail.nomorSk || '-';
+    skLamaTmt_I43 = calculateMulaiTanggal(record.kolomK || record.tanggalAcuanK, defaultYear, record.tmtKgb);
+    skLamaMk = record.mkSesudah || '-';
+  } else {
+    skLamaPejabat = record.pejabatSkLama || 'Bupati Penajam Paser Utara';
+    skLamaTanggal = record.kolomI ? formatIndoDate(record.kolomI) : '-'; 
+    skLamaNomor_I40 = record.kolomG || '-';
+    skLamaTmt_I43 = record.kolomI ? formatIndoDate(record.kolomI) : '-'; 
+    skLamaMk = record.mkSebelum || '-';
+  }
+
+  const targetYear = defaultYear || record.tahunKgb || 2026;
+  const tmtBaru_I45 = calculateMulaiTanggal(record.kolomK || record.tanggalAcuanK, targetYear, record.tmtKgb);
+  const golBaru_I49 = record.kolomO || (gol !== '-' ? `Golongan ${gol}` : '-');
+  const nextYear = targetYear + 2;
+  const kgbBerikutnya_I50 = calculateMulaiTanggal(record.kolomK || record.tanggalAcuanK, nextYear, record.tmtKgb);
+  const diktumBiaya_C51 = `Segala biaya yang diperlukan dalam rangkah pelaksanaan Keputusan ini, ${unitKerja_I39} dibebankan pada DPA Kabupaten Penajam Paser Utara.`;
+  const tanggalPenetapan_I55 = record.tanggalPenetapan ? formatIndoDate(record.tanggalPenetapan) : '-';
+
+  return {
+    nomorLengkap: skInfo.nomorLengkap,
+    nomorUrut: skInfo.nomorUrut,
+    bulanRomawi: skInfo.bulanRomawi,
+    tahunPenetapan: skInfo.tahunPenetapan,
+    nomorSK_A10,
+    judulSK_C24,
+    namaLengkap_I34,
+    nip_I35,
+    golJabatan_I36,
+    masaPerjanjian,
+    perpanjanganPerjanjian,
+    unitKerja_I39,
+    resolvedGajiLamaNumeric,
+    gajiLamaFull_I44,
+    skLamaPejabat,
+    skLamaTanggal,
+    skLamaNomor_I40,
+    skLamaTmt_I43,
+    skLamaMk,
+    resolvedGajiBaruNumeric,
+    gajiBaruFull_I46,
+    mkGolongan_I48,
+    tmtBaru_I45,
+    kolomP: tmtBaru_I45,
+    golBaru_I49,
+    kgbBerikutnya_I50,
+    diktumBiaya_C51,
+    tanggalPenetapan_I55
+  };
 }
