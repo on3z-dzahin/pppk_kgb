@@ -874,48 +874,30 @@ export async function fetchSpreadsheetData(
   }
 }
 
-export async function saveToRecordSheet(
-  spreadsheetId: string,
-  accessToken: string,
-  record: KGBRecord,
-  selectedYear: number
-): Promise<boolean> {
-  try {
-    const sheetName = 'record'; // Nama sheet tujuan
-    const tanggalPenetapan = record.yearDetails?.[selectedYear]?.tanggalPenetapan || record.tanggalPenetapan || '';
-    const nomorSk = record.yearDetails?.[selectedYear]?.nomorSk || record.nomorSk || '';
-    const mulaiTanggal = calculateMulaiTanggal(record.kolomK, selectedYear);
-    const mkSesudah = record.mkSesudah || '';
+  const handleSaveRecord = async (id: string) => {
+    // ... (kode sebelumnya)
+    let savedToSheet = false;
+    let sheetError = '';
 
-    // Susunan header: NIP, Nama, Unit Kerja, Nomor SK, MK Sebelum, MK Sesudah, Tgl Penetapan, Mulai Tanggal, Tahun
-    const values = [[
-      record.nip,
-      record.nama,
-      record.unitKerja,
-      nomorSk,
-      record.mkSebelum || '',
-      mkSesudah,
-      tanggalPenetapan,
-      mulaiTanggal,
-      selectedYear.toString()
-    ]];
+    if (accessToken && spreadsheetInput) {
+      showToast('Menyimpan ke Google Sheets...', 'info');
+      
+      // TANGKAP HASIL ERROR
+      const result = await saveToRecordSheet(spreadsheetInput, accessToken, recordToSave, selectedYear);
+      savedToSheet = result.success;
+      if (!result.success) sheetError = result.error || 'Unknown error';
+      
+    } else {
+      showToast('Peringatan: Anda belum Login Google. Data hanya disimpan lokal.', 'info');
+    }
 
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!A:I:append?valueInputOption=USER_ENTERED`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ values }),
-      }
-    );
+    // ... (simpan ke lokal)
 
-    if (!response.ok) throw new Error('Gagal menyimpan ke Google Sheets');
-    return true;
-  } catch (error) {
-    console.error('Error saving to Sheets:', error);
-    return false;
-  }
-}
+    if (savedToSheet) {
+      showToast('Data berhasil disimpan ke Sheets & Lokal!');
+    } else if (sheetError) {
+      showToast(`Gagal simpan ke Sheets: ${sheetError}`, 'error');
+    } else {
+      showToast('Data berhasil disimpan secara lokal!');
+    }
+  };
