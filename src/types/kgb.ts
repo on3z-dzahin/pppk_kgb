@@ -482,7 +482,7 @@ export function getSKRenderData(record: KGBRecord, defaultYear: number = 2026): 
 
   // SK Terakhir: Pejabat, Tanggal, Nomor, TMT, Masa Kerja
   const skLamaPejabat = record.pejabatSkLama || 'Bupati Penajam Paser Utara';
-  const skLamaTanggal = record.kolomH ? formatIndoDate(record.kolomH) : '7 Mei 2025';
+  const skLamaTanggal = record.kolomI ? formatIndoDate(record.kolomI) : '-';
   const skLamaNomor_I40 = record.kolomG || '800.1.13.2/1441/SK-BUP-PPPK/BKPSDM-PPIK';
   const skLamaTmt_I43 = record.kolomI ? formatIndoDate(record.kolomI) : '7 Mei 2025';
   const skLamaMk = (record.mkSebelum || '00 tahun 00 bulan').toLowerCase();
