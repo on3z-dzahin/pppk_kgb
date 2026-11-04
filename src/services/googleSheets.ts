@@ -873,3 +873,49 @@ export async function fetchSpreadsheetData(
     return { records: [], error: err.message || 'Terjadi kesalahan saat memuat Google Sheets' };
   }
 }
+
+export async function saveToRecordSheet(
+  spreadsheetId: string,
+  accessToken: string,
+  record: KGBRecord,
+  selectedYear: number
+): Promise<boolean> {
+  try {
+    const sheetName = 'record'; // Nama sheet tujuan
+    const tanggalPenetapan = record.yearDetails?.[selectedYear]?.tanggalPenetapan || record.tanggalPenetapan || '';
+    const nomorSk = record.yearDetails?.[selectedYear]?.nomorSk || record.nomorSk || '';
+    const mulaiTanggal = calculateMulaiTanggal(record.kolomK, selectedYear);
+    const mkSesudah = record.mkSesudah || '';
+
+    // Susunan header: NIP, Nama, Unit Kerja, Nomor SK, MK Sebelum, MK Sesudah, Tgl Penetapan, Mulai Tanggal, Tahun
+    const values = [[
+      record.nip,
+      record.nama,
+      record.unitKerja,
+      nomorSk,
+      record.mkSebelum || '',
+      mkSesudah,
+      tanggalPenetapan,
+      mulaiTanggal,
+      selectedYear.toString()
+    ]];
+
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!A:I:append?valueInputOption=USER_ENTERED`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ values }),
+      }
+    );
+
+    if (!response.ok) throw new Error('Gagal menyimpan ke Google Sheets');
+    return true;
+  } catch (error) {
+    console.error('Error saving to Sheets:', error);
+    return false;
+  }
+}
