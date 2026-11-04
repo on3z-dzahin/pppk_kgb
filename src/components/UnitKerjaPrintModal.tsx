@@ -62,7 +62,7 @@ export const UnitKerjaPrintModal: React.FC<UnitKerjaPrintModalProps> = ({
         copiedPages.forEach((page) => mergedPdf.addPage(page));
         
         // Jeda sedikit untuk mencegah rate-limit Google
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       // 3. Simpan sebagai satu file PDF utuh
