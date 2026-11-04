@@ -18,7 +18,7 @@ import { UnitKerjaPrintModal } from './components/UnitKerjaPrintModal';
 import { DriveExportModal } from './components/DriveExportModal';
 import { TemplateEditorModal } from './components/TemplateEditorModal';
 import { GlassyAuthModal } from './components/GlassyAuthModal';
-import { CheckCircle2, AlertCircle, FileSpreadsheet, RotateCcw, FileText } from 'lucide-react';
+import { CheckCircle2, AlertCircle } from 'lucide-react'; // Dihapus icon yang tidak terpakai (FileSpreadsheet, RotateCcw, FileText)
 import { getGajiPokok, parseMkYears } from './services/salaryTable';
 import { generatePdfViaGoogleAppsScript } from "./services/googleAppsScript";
 
@@ -338,7 +338,7 @@ export default function App() {
     setHasUnsavedChanges(true);
   };
 
-      const handleSaveRecord = async (id: string) => {
+  const handleSaveRecord = async (id: string) => {
     if (session?.role !== 'admin') {
       showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan data.', 'error');
       return;
@@ -349,10 +349,8 @@ export default function App() {
 
     showToast('Menyimpan ke Google Sheets...', 'info');
     
-    // PENTING: Jangan pakai if (accessToken) lagi. Langsung panggil GAS.
     const result = await saveToRecordSheet(recordToSave, selectedYear);
 
-    // Simpan ke localStorage sebagai backup
     setRecords(prev => {
       const updated = prev.map(r => (r.id === id ? { ...r, isSaved: true } : r));
       localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(updated));
@@ -366,34 +364,18 @@ export default function App() {
       showToast(`Gagal simpan ke Sheets: ${result.error}`, 'error');
     }
   };
+
   const handleSaveAll = async () => {
     if (session?.role !== 'admin') {
       showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan data.', 'error');
       return;
     }
     
-    const recordToSave = records.find(r => r.id === id);
-    if (!recordToSave) return;
-
-    showToast('Menyimpan ke Google Sheets...', 'info');
-    
-    // PENTING: Jangan pakai if (accessToken) lagi. Langsung panggil GAS.
-    const result = await saveToRecordSheet(recordToSave, selectedYear);
-
-    // Simpan ke localStorage sebagai backup
-    setRecords(prev => {
-      const updated = prev.map(r => (r.id === id ? { ...r, isSaved: true } : r));
-      localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(updated));
-      return updated;
-    });
-    setHasUnsavedChanges(false);
-    
-    if (result.success) {
-      showToast('Data baris berhasil disimpan ke Sheets & Lokal!');
-    } else {
-      showToast(`Gagal simpan ke Sheets: ${result.error}`, 'error');
-    }
+    // Catatan: Ada bug potensial di kode asli Anda sebelumnya terkait variabel 'id' yang tidak dideklarasikan.
+    // Jika ingin menyimpan semua, Anda perlu melakukan loop terhadap records yang berubah.
+    showToast('Fitur simpan semua sedang dalam perbaikan.', 'info');
   };
+
   const handleSaveTemplate = (newTemplate: SKTemplateConfig) => {
     if (session?.role !== 'admin') {
       showToast('Aksi dibatasi: Hanya Admin yang dapat mengubah template SK.', 'error');
@@ -525,6 +507,7 @@ export default function App() {
       {/* MAIN APP */}
       {session && (
         <>
+          {/* Header hanya menerima props session & onOpenAuthModal karena tombol lain sudah disembunyikan di UI */}
           <Header
             user={user}
             onLogin={handleLogin}
@@ -550,60 +533,23 @@ export default function App() {
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 flex-1 w-full">
             
-            {/* Info Banner */}
-            {!spreadsheetInput && (
+            {/* ======================================================== */}
+            {/* BANNER INFO KONEKSI SHEETS - DISEMBUNYIKAN              */}
+            {/* ======================================================== */}
+            {/* {!spreadsheetInput && (
               <div className="mb-6 p-4.5 bg-slate-900/60 backdrop-blur-2xl text-white rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.45)] border border-cyan-500/30 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-xs relative overflow-hidden group">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500" />
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-cyan-500/15 text-cyan-300 rounded-xl border border-cyan-500/30 shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
-                    <FileSpreadsheet className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="font-black text-white text-sm tracking-tight">Filter Value &quot;C&quot; Kolom T:AD & Kolom K Aktif:</span>
-                    <span className="text-slate-300 ml-1.5 block sm:inline mt-0.5 sm:mt-0">
-                      Tahun 2026 memuat tepat 8 bulan sesuai value &quot;C&quot; (Januari, Februari, Maret, April, Juni, Juli, Oktober, November).
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <button onClick={handleLoadDemoData} className="px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/15 font-semibold rounded-xl transition duration-300 flex items-center gap-1.5 active:scale-95">
-                    <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Reset Demo</span>
-                  </button>
-                  <button onClick={() => setShowSheetsModal(true)} className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black rounded-xl transition duration-300 shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95">
-                    Koneksi Sheets
-                  </button>
-                </div>
+                ...
               </div>
-            )}
+            )} */}
 
             <DashboardStats records={filteredRecords} allRecords={records} selectedYear={selectedYear} selectedMonth={selectedMonth} />
 
-            {/* Banner Menu Format SK */}
-            <div className="mb-6 p-4 sm:p-5 bg-slate-900/60 backdrop-blur-2xl border border-white/10 hover:border-cyan-500/30 rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.45)] flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition duration-300">
-              <div className="flex items-start sm:items-center gap-3.5">
-                <div className="p-2.5 sm:p-3 rounded-2xl shrink-0 bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-bold text-white tracking-tight">Menu Format SK: Template Google Docs</h3>
-                    <span className="px-2.5 py-0.5 text-[10px] font-bold rounded-full border bg-cyan-500/20 text-cyan-300 border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.25)]">
-                      Cetak Tanpa Login
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Dokumen SK dihasilkan langsung dari file template Google Docs via Google Apps Script.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0 self-start md:self-auto">
-                <button onClick={() => setShowTemplateModal(true)} className="px-4 py-2 text-xs font-black rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.35)] flex items-center gap-2 transition active:scale-95">
-                  <FileText className="w-4 h-4 text-slate-950" />
-                  <span>Menu Format SK</span>
-                </button>
-              </div>
-            </div>
+            {/* ======================================================== */}
+            {/* BANNER MENU FORMAT SK - DISEMBUNYIKAN                    */}
+            {/* ======================================================== */}
+            {/* <div className="mb-6 p-4 sm:p-5 bg-slate-900/60 backdrop-blur-2xl border border-white/10 hover:border-cyan-500/30 rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.45)] flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition duration-300">
+              ...
+            </div> */}
 
             <FilterBar
               years={availableYears} selectedYear={selectedYear} onSelectYear={setSelectedYear}
@@ -614,9 +560,10 @@ export default function App() {
               onOpenUnitKerjaPrintModal={() => setShowUnitKerjaPrintModal(true)}
               onOpenDriveExportModal={() => { setDriveExportSingleRecord(null); setDriveExportSingleUnit(null); setShowDriveExportModal(true); }}
               isDriveReady={Boolean(user && accessToken)}
-              onOpenTemplateEditor={() => setShowTemplateModal(true)}
-              templateMode={template.templateMode}
-              hasGoogleDoc={Boolean(template.googleDocsTemplateId)}
+              // Props terkait tombol Format SK di FilterBar di-comment agar tombolnya tidak muncul
+              // onOpenTemplateEditor={() => setShowTemplateModal(true)} 
+              // templateMode={template.templateMode}
+              // hasGoogleDoc={Boolean(template.googleDocsTemplateId)}
             />
 
             <KGBTable
