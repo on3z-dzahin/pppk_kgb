@@ -1,5 +1,6 @@
 import { saveAs } from 'file-saver';
 import { KGBRecord, getSKRenderData } from '../types/kgb';
+import { KGBRecord, getSKRenderData, formatIndoDate } from '../types/kgb';
 
 // PASTIKAN URL INI ADALAH URL WEB APP ANDA YANG TERBARU
 const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzsWKwkB_nPxcLqPVgl0OJOt8eL_80d-zk7nRTFZc5nOhOMp8sIlDxNdYNpuUiLlrPCKw/exec'; 
@@ -24,6 +25,8 @@ export async function fetchPdfBase64FromGAS(record: KGBRecord, selectedYear: num
   const skData = getSKRenderData(record, selectedYear);
   const payload = {
     ...skData,
+    kolom_k: formatIndoDate(record.kolomK || record.tanggalAcuanK),
+    
     golongan: record.kolomF || record.pangkatGol || '-',
     jabatan: record.kolomR || record.jabatan || '-',
     nama_pengirim: 'SRIKANDI',
