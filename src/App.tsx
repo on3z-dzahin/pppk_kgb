@@ -350,7 +350,8 @@ export default function App() {
     let savedToSheet = false;
     if (accessToken && spreadsheetInput) {
       showToast('Menyimpan ke Google Sheets...', 'info');
-      savedToSheet = await saveToRecordSheet(spreadsheetInput, accessToken, recordToSave, selectedYear);
+      const result = await saveToRecordSheet(recordToSave, selectedYear);
+savedToSheet = result.success;
     }
 
     setRecords(prev => {
