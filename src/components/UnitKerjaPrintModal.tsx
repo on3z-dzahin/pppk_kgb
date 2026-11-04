@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { KGBRecord, SKTemplateConfig } from '../types/kgb';
-import { generateUnitKerjaPdf, triggerDownload } from '../services/pdfGenerator';
-import { Building2, Download, Printer, X, CheckCircle2, HardDrive } from 'lucide-react';
+import { generatePdfViaGoogleAppsScript } from '../services/googleAppsScript';
+import { Building2, Download, Printer, X, CheckCircle2, HardDrive, Loader2 } from 'lucide-react';
 
 interface UnitKerjaPrintModalProps {
   records: KGBRecord[];
@@ -37,23 +37,43 @@ export const UnitKerjaPrintModal: React.FC<UnitKerjaPrintModalProps> = ({
 
   const [downloadingUnit, setDownloadingUnit] = useState<string | null>(null);
 
-  const handleDownloadUnit = (unitName: string, items: KGBRecord[]) => {
+  // Fungsi unduh per unit kerja (Looping per pegawai)
+  const handleDownloadUnit = async (unitName: string, items: KGBRecord[]) => {
     setDownloadingUnit(unitName);
     try {
-      const { blob, filename } = generateUnitKerjaPdf(unitName, items, template, selectedYear);
-      triggerDownload(blob, filename);
+      for (let i = 0; i < items.length; i++) {
+        // Panggil Google Apps Script
+        await generatePdfViaGoogleAppsScript(items[i], selectedYear || 2026);
+        
+        // Jeda 1.5 detik agar browser tidak memblokir unduhan ganda
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
     } catch (err) {
       console.error('Error generating PDF:', err);
+      alert('Terjadi kesalahan saat mengunduh beberapa file PDF.');
     } finally {
-      setTimeout(() => setDownloadingUnit(null), 600);
+      setDownloadingUnit(null);
     }
   };
 
-  const handleDownloadAllUnits = () => {
-    unitList.forEach(({ name, items }) => {
-      const { blob, filename } = generateUnitKerjaPdf(name, items, template, selectedYear);
-      triggerDownload(blob, filename);
-    });
+  // Fungsi unduh semua unit kerja
+  const handleDownloadAllUnits = async () => {
+    const confirmMsg = `Anda akan mengunduh total ${records.length} file PDF secara berurutan. Proses ini mungkin memakan waktu. Lanjutkan?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setDownloadingUnit('ALL');
+    try {
+      for (const unit of unitList) {
+        for (const item of unit.items) {
+          await generatePdfViaGoogleAppsScript(item, selectedYear || 2026);
+          await new Promise(resolve => setTimeout(resolve, 1500)); // Jeda
+        }
+      }
+    } catch (err) {
+      console.error('Error generating PDF All:', err);
+    } finally {
+      setDownloadingUnit(null);
+    }
   };
 
   return (
@@ -68,10 +88,10 @@ export const UnitKerjaPrintModal: React.FC<UnitKerjaPrintModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-white tracking-tight">
-                Cetak SK per Unit Kerja (1 File PDF)
+                Cetak SK per Unit Kerja
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Setiap file berisi seluruh pegawai dari unit kerja yang sama
+                Setiap pegawai akan diunduh sebagai file PDF terpisah (via Google Docs)
               </p>
             </div>
           </div>
@@ -90,9 +110,10 @@ export const UnitKerjaPrintModal: React.FC<UnitKerjaPrintModalProps> = ({
             {unitList.length > 1 && (
               <button
                 onClick={handleDownloadAllUnits}
-                className="text-xs font-bold text-cyan-400 hover:text-cyan-300 underline"
+                disabled={downloadingUnit !== null}
+                className="text-xs font-bold text-cyan-400 hover:text-cyan-300 underline disabled:opacity-50 disabled:no-underline"
               >
-                Unduh Semua Unit Kerja ({unitList.length} file)
+                Unduh Semua Pegawai ({records.length} file)
               </button>
             )}
           </div>
@@ -109,7 +130,7 @@ export const UnitKerjaPrintModal: React.FC<UnitKerjaPrintModalProps> = ({
                     <span className="text-cyan-300 font-semibold">{count} Pegawai</span>
                     <span>&bull;</span>
                     <span className="font-mono text-[11px] text-slate-400">
-                      Output: SK_KGB_{name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf
+                      Output: {count} file PDF terpisah
                     </span>
                   </div>
                 </div>
@@ -118,11 +139,15 @@ export const UnitKerjaPrintModal: React.FC<UnitKerjaPrintModalProps> = ({
                   {/* Download PDF button */}
                   <button
                     onClick={() => handleDownloadUnit(name, items)}
-                    disabled={downloadingUnit === name}
+                    disabled={downloadingUnit !== null}
                     className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.3)] transition active:scale-95 disabled:opacity-50 border border-cyan-400/40"
                   >
-                    <Download className="w-3.5 h-3.5 text-cyan-200" />
-                    <span>{downloadingUnit === name ? 'Membuat...' : 'Unduh PDF'}</span>
+                    {downloadingUnit === name ? (
+                      <Loader2 className="w-3.5 h-3.5 text-cyan-200 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5 text-cyan-200" />
+                    )}
+                    <span>{downloadingUnit === name ? 'Memproses...' : 'Unduh PDF'}</span>
                   </button>
 
                   {/* Upload to Google Drive */}
@@ -142,7 +167,7 @@ export const UnitKerjaPrintModal: React.FC<UnitKerjaPrintModalProps> = ({
 
         {/* Footer */}
         <div className="px-6 py-4 bg-slate-950/80 border-t border-white/10 flex justify-between items-center text-xs text-slate-400 backdrop-blur-md">
-          <span className="font-mono">Format file standar resmi SK (A4)</span>
+          <span className="font-mono">Format file standar resmi SK (Google Docs PDF)</span>
           <button
             onClick={onClose}
             className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-semibold rounded-xl border border-white/15 transition active:scale-95"
