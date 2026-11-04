@@ -903,60 +903,41 @@ export async function fetchSpreadsheetData(
   };
 // Tambahkan fungsi ini di bagian paling bawah file googleSheets.ts
 export async function saveToRecordSheet(
-  spreadsheetId: string,
-  accessToken: string,
   record: KGBRecord,
   selectedYear: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const sheetName = 'record'; // Pastikan nama sheet di Google Sheets Anda adalah 'record'
-    
-    // Mengambil data tanggal dan nomor SK dari state tahun yang dipilih
+    // URL Web App Google Apps Script Anda (sama dengan URL untuk PDF)
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzsWKwkB_nPxcLqPVgl0OJOt8eL_80d-zk7nRTFZc5nOhOMp8sIlDxNdYNpuUiLlrPCKw/exec'; 
+
     const tanggalPenetapan = record.yearDetails?.[selectedYear]?.tanggalPenetapan || record.tanggalPenetapan || '';
     const nomorSk = record.yearDetails?.[selectedYear]?.nomorSk || record.nomorSk || '';
-    
-    // Mengambil data masa kerja
-    const mkSesudah = record.mkSesudah || '';
-    
-    // Format tanggal mulai (TMT Baru)
-    // Kita asumsikan calculateMulaiTanggal sudah di-import di file ini, 
-    // jika belum, tambahkan import { calculateMulaiTanggal } from '../types/kgb'; di atas.
     const mulaiTanggal = record.kolomK ? `${record.kolomK}` : ''; 
 
-    // Susunan header (A sampai I): NIP, Nama, Unit Kerja, Nomor SK, MK Sebelum, MK Sesudah, Tgl Penetapan, Mulai Tanggal, Tahun
-    const values = [[
-      record.nip, 
-      record.nama, 
-      record.unitKerja, 
-      nomorSk,
-      record.mkSebelum || '', 
-      mkSesudah, 
-      tanggalPenetapan,
-      mulaiTanggal, 
-      selectedYear.toString()
-    ]];
+    const payload = {
+      nip: record.nip,
+      nama: record.nama,
+      unitKerja: record.unitKerja,
+      nomorSk: nomorSk,
+      mkSebelum: record.mkSebelum || '',
+      mkSesudah: record.mkSesudah || '',
+      tanggalPenetapan: tanggalPenetapan,
+      mulaiTanggal: mulaiTanggal,
+      tahun: selectedYear.toString()
+    };
 
-    // Tembak API Google Sheets
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!A:I:append?valueInputOption=USER_ENTERED`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ values }),
-      }
-    );
+    const response = await fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || `HTTP Error ${response.status}`);
-    }
+    const result = await response.json();
+    if (result.status === 'error') throw new Error(result.message);
     
     return { success: true };
   } catch (error: any) {
-    console.error('Error saving to Sheets:', error);
+    console.error('Error saving to Sheets via GAS:', error);
     return { success: false, error: error.message };
   }
 }
