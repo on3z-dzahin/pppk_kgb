@@ -429,4 +429,7 @@ export function calculateMulaiTanggal(
 /**
  * Build complete SK Render Data matching the Penajam Paser Utara SK Decree:
  */
-getSKRenderData
+// Pastikan ada tulisan "export" di depannya
+export function getSKRenderData(record: KGBRecord, defaultYear: number = 2026): SKRenderData {
+  // ... isi kode ...
+}
