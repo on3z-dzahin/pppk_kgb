@@ -1,6 +1,6 @@
 import React from 'react';
 import { INDONESIAN_MONTHS } from '../services/googleSheets';
-import { Calendar, Filter, Search, Printer, HardDrive, Check, Building, FileText } from 'lucide-react';
+import { Calendar, Filter, Search, Printer, HardDrive, Building } from 'lucide-react'; // FileText dihapus
 
 interface FilterBarProps {
   years: number[];
@@ -25,9 +25,10 @@ interface FilterBarProps {
   onOpenDriveExportModal: () => void;
   isDriveReady: boolean;
 
-  onOpenTemplateEditor: () => void;
-  templateMode?: 'google_docs' | 'built_in';
-  hasGoogleDoc?: boolean;
+  // Props di bawah ini dihapus karena tombol Format SK sudah dihilangkan
+  // onOpenTemplateEditor: () => void;
+  // templateMode?: 'google_docs' | 'built_in';
+  // hasGoogleDoc?: boolean;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -47,9 +48,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onOpenUnitKerjaPrintModal,
   onOpenDriveExportModal,
   isDriveReady,
-  onOpenTemplateEditor,
-  templateMode,
-  hasGoogleDoc
 }) => {
   return (
     <div className="bg-slate-900/60 backdrop-blur-2xl rounded-2xl border border-white/10 p-5 mb-6 shadow-[0_8px_32px_0_rgba(0,0,0,0.45)]">
@@ -190,23 +188,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </button>
         </div>
 
-        {/* Batch Print, Drive & Format SK Actions */}
+        {/* Batch Print & Drive Actions */}
         <div className="flex flex-wrap items-center gap-2">
           
-          {/* Menu Format SK (Google Docs / Bawaan) */}
-          <button
-            onClick={onOpenTemplateEditor}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-400/30 transition-all duration-300 backdrop-blur-md hover:border-amber-400/60 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] active:scale-95"
-            title="Buka Menu Format SK & Pengaturan Template Google Docs"
-          >
-            <FileText className="w-4 h-4 text-amber-400" />
-            <span>Format SK</span>
-            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-              templateMode === 'google_docs' ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30' : 'bg-amber-500/20 text-amber-200 border border-amber-400/30'
-            }`}>
-              {templateMode === 'google_docs' ? 'Google Docs' : 'Template Bawaan'}
-            </span>
-          </button>
+          {/* TOMBOL FORMAT SK TELAH DIHAPUS DARI SINI */}
 
           {/* Cetak Per Unit Kerja */}
           <button
