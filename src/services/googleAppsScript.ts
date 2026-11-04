@@ -1,5 +1,4 @@
 import { saveAs } from 'file-saver';
-import { KGBRecord, getSKRenderData } from '../types/kgb';
 import { KGBRecord, getSKRenderData, formatIndoDate } from '../types/kgb';
 
 // PASTIKAN URL INI ADALAH URL WEB APP ANDA YANG TERBARU
