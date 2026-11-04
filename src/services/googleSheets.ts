@@ -901,3 +901,62 @@ export async function fetchSpreadsheetData(
       showToast('Data berhasil disimpan secara lokal!');
     }
   };
+// Tambahkan fungsi ini di bagian paling bawah file googleSheets.ts
+export async function saveToRecordSheet(
+  spreadsheetId: string,
+  accessToken: string,
+  record: KGBRecord,
+  selectedYear: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const sheetName = 'record'; // Pastikan nama sheet di Google Sheets Anda adalah 'record'
+    
+    // Mengambil data tanggal dan nomor SK dari state tahun yang dipilih
+    const tanggalPenetapan = record.yearDetails?.[selectedYear]?.tanggalPenetapan || record.tanggalPenetapan || '';
+    const nomorSk = record.yearDetails?.[selectedYear]?.nomorSk || record.nomorSk || '';
+    
+    // Mengambil data masa kerja
+    const mkSesudah = record.mkSesudah || '';
+    
+    // Format tanggal mulai (TMT Baru)
+    // Kita asumsikan calculateMulaiTanggal sudah di-import di file ini, 
+    // jika belum, tambahkan import { calculateMulaiTanggal } from '../types/kgb'; di atas.
+    const mulaiTanggal = record.kolomK ? `${record.kolomK}` : ''; 
+
+    // Susunan header (A sampai I): NIP, Nama, Unit Kerja, Nomor SK, MK Sebelum, MK Sesudah, Tgl Penetapan, Mulai Tanggal, Tahun
+    const values = [[
+      record.nip, 
+      record.nama, 
+      record.unitKerja, 
+      nomorSk,
+      record.mkSebelum || '', 
+      mkSesudah, 
+      tanggalPenetapan,
+      mulaiTanggal, 
+      selectedYear.toString()
+    ]];
+
+    // Tembak API Google Sheets
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!A:I:append?valueInputOption=USER_ENTERED`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ values }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || `HTTP Error ${response.status}`);
+    }
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error saving to Sheets:', error);
+    return { success: false, error: error.message };
+  }
+}
