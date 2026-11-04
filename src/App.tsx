@@ -338,7 +338,7 @@ export default function App() {
     setHasUnsavedChanges(true);
   };
 
-    const handleSaveRecord = async (id: string) => {
+      const handleSaveRecord = async (id: string) => {
     if (session?.role !== 'admin') {
       showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan data.', 'error');
       return;
@@ -349,10 +349,10 @@ export default function App() {
 
     showToast('Menyimpan ke Google Sheets...', 'info');
     
-    // PENTING: Hanya mengirim 2 parameter (recordToSave dan selectedYear)
-    // Tidak ada lagi accessToken atau spreadsheetInput
+    // PENTING: Jangan pakai if (accessToken) lagi. Langsung panggil GAS.
     const result = await saveToRecordSheet(recordToSave, selectedYear);
 
+    // Simpan ke localStorage sebagai backup
     setRecords(prev => {
       const updated = prev.map(r => (r.id === id ? { ...r, isSaved: true } : r));
       localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(updated));
@@ -368,35 +368,32 @@ export default function App() {
   };
   const handleSaveAll = async () => {
     if (session?.role !== 'admin') {
-      showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan seluruh perubahan.', 'error');
+      showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan data.', 'error');
       return;
     }
+    
+    const recordToSave = records.find(r => r.id === id);
+    if (!recordToSave) return;
 
-    showToast('Menyimpan semua perubahan...', 'info');
+    showToast('Menyimpan ke Google Sheets...', 'info');
+    
+    // PENTING: Jangan pakai if (accessToken) lagi. Langsung panggil GAS.
+    const result = await saveToRecordSheet(recordToSave, selectedYear);
 
+    // Simpan ke localStorage sebagai backup
     setRecords(prev => {
-      const updated = prev.map(r => ({ ...r, isSaved: true }));
+      const updated = prev.map(r => (r.id === id ? { ...r, isSaved: true } : r));
       localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(updated));
       return updated;
     });
-
-    if (accessToken && spreadsheetInput) {
-      const recordsToSync = records.filter(r => r.nomorSk || r.yearDetails?.[selectedYear]?.nomorSk);
-      let successCount = 0;
-      
-      for (const rec of recordsToSync) {
-        const success = await saveToRecordSheet(spreadsheetInput, accessToken, rec, selectedYear);
-        if (success) successCount++;
-      }
-      
-      showToast(`Berhasil menyimpan ${successCount} data ke Sheets!`, 'success');
-    } else {
-      showToast('Peringatan: Login Google diperlukan untuk simpan ke Sheets. Data disimpan lokal.', 'info');
-    }
-    
     setHasUnsavedChanges(false);
+    
+    if (result.success) {
+      showToast('Data baris berhasil disimpan ke Sheets & Lokal!');
+    } else {
+      showToast(`Gagal simpan ke Sheets: ${result.error}`, 'error');
+    }
   };
-
   const handleSaveTemplate = (newTemplate: SKTemplateConfig) => {
     if (session?.role !== 'admin') {
       showToast('Aksi dibatasi: Hanya Admin yang dapat mengubah template SK.', 'error');
