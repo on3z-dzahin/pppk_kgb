@@ -139,7 +139,7 @@ export const GlassyAuthModal: React.FC<GlassyAuthModalProps> = ({
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Sistem Informasi Kenaikan Gaji Berkala Terpadu
+            Kenaikan Gaji Berkala PPPK
           </p>
         </div>
 
@@ -170,48 +170,7 @@ export const GlassyAuthModal: React.FC<GlassyAuthModalProps> = ({
           )}
         </AnimatePresence>
 
-        {/* Quick Fill Cards */}
-        <div className="space-y-2 mb-4">
-          <span className="text-[11px] font-bold text-slate-400 block tracking-wide">
-            Akses Cepat:
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickFill('admin')}
-              className="p-2.5 rounded-xl border border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-950/40 hover:border-cyan-400 text-left transition duration-200 group active:scale-95"
-            >
-              <div className="flex items-center gap-1.5 text-cyan-300 font-bold text-xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Admin</span>
-              </div>
-              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                V3 / ••••••
-              </div>
-              <div className="text-[9px] text-cyan-400/90 font-medium">
-                Akses Penuh
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('user')}
-              className="p-2.5 rounded-xl border border-white/10 bg-slate-950/40 hover:bg-slate-950/70 hover:border-white/20 text-left transition duration-200 group active:scale-95"
-            >
-              <div className="flex items-center gap-1.5 text-slate-200 font-bold text-xs">
-                <UserIcon className="w-3.5 h-3.5 text-slate-400" />
-                <span>User</span>
-              </div>
-              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                User / ••••
-              </div>
-              <div className="text-[9px] text-slate-400 font-medium">
-                Hanya Melihat
-              </div>
-            </button>
-          </div>
-        </div>
-
+        
         {/* Login Form */}
         <form onSubmit={handleLoginSubmit} className="space-y-4">
           <div>
