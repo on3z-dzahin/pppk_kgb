@@ -224,16 +224,12 @@ export const GlassyAuthModal: React.FC<GlassyAuthModalProps> = ({
           </button>
         </form>
 
-        {/* Info footer */}
-        <div className="mt-5 pt-4 border-t border-white/10 text-center">
-          <p className="text-[10px] text-slate-500 leading-relaxed">
-            Akses terbatas untuk <span className="text-cyan-400 font-semibold">2 akun resmi</span>:
-            Admin (V3) &amp; User.
-            <br />
-            Hubungi Administrator jika memerlukan akses tambahan.
-          </p>
+                {/* Mengganti teks info lama dengan logo BKPSDM */}
+        <div className="mt-5 pt-4 border-t border-white/10 flex justify-center items-center opacity-85 hover:opacity-100 transition duration-300">
+          <img 
+            src="/logo-neon.png" 
+            alt="Logo BKPSDM" 
+            className="h-10 w-auto object-contain filter drop-shadow-[0_0_12px_rgba(236,72,153,0.2)]" 
+          />
         </div>
-      </motion.div>
-    </div>
-  );
-};
+
