@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from 'firebase/auth';
 import { KGBRecord, SKTemplateConfig, AppSession } from './types/kgb';
-import { DEFAULT_KGB_DATA, DEFAULT_TEMPLATE, fetchSpreadsheetData, ALL_KGB_YEARS, hasValueCForYear } from './services/googleSheets';
+import { DEFAULT_KGB_DATA, DEFAULT_TEMPLATE, fetchSpreadsheetData, ALL_KGB_YEARS, hasValueCForYear, saveToRecordSheet } from './services/googleSheets';
 import { initAuth, googleSignIn, logoutGoogle } from './services/firebase';
 import { Header } from './components/Header';
 import { DashboardStats } from './components/DashboardStats';
@@ -21,7 +21,6 @@ import { GlassyAuthModal } from './components/GlassyAuthModal';
 import { CheckCircle2, AlertCircle, FileSpreadsheet, RotateCcw, FileText } from 'lucide-react';
 import { getGajiPokok, parseMkYears } from './services/salaryTable';
 import { generatePdfViaGoogleAppsScript } from "./services/googleAppsScript";
-
 
 const STORAGE_KEY_DATA = 'kgb_app_records_v10_mulai_tanggal_auto';
 const STORAGE_KEY_TEMPLATE = 'kgb_app_template_v5_gdocs_master';
@@ -47,12 +46,9 @@ export default function App() {
     return null;
   });
 
-  // showAuthModal hanya untuk "Ganti Akun" saat sudah login.
-  // Saat belum login, modal dipaksa terbuka via `isAuthModalOpen`.
   const [showAuthModal, setShowAuthModal] = useState(false);
   const isAuthModalOpen = !session || showAuthModal;
 
-  // Google Auth State (Hanya untuk integrasi Sheets/Drive jika diperlukan)
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -94,7 +90,7 @@ export default function App() {
         return {
           ...DEFAULT_TEMPLATE,
           ...parsed,
-          templateMode: 'built_in', // Default ke built_in/Docxtemplater
+          templateMode: 'built_in',
           googleDocsTemplateId: parsed.googleDocsTemplateId || DEFAULT_DOCS_TEMPLATE_ID,
           templateText: parsed.templateText || DEFAULT_TEMPLATE.templateText
         };
@@ -144,7 +140,7 @@ export default function App() {
   };
 
   // ==========================================
-  // 5. Firebase Auth Init (Untuk fitur Sheets/Drive)
+  // 5. Firebase Auth Init
   // ==========================================
   useEffect(() => {
     const unsubscribe = initAuth(
@@ -222,7 +218,6 @@ export default function App() {
       'success'
     );
     
-    // Auto-load data dari spreadsheet publik (tanpa auth)
     try {
       const { records: fetchedRecords, template: fetchedTemplate } = await fetchSpreadsheetData(
         DEFAULT_SPREADSHEET_ID, null, kgbSheetName, templateSheetName
@@ -239,7 +234,7 @@ export default function App() {
         }));
       }
     } catch (e) {
-      console.warn('Auto-load from default spreadsheet failed, using demo data:', e);
+      console.warn('Auto-load from default spreadsheet failed:', e);
     }
   };
 
@@ -320,7 +315,7 @@ export default function App() {
       });
   }, [records, selectedYear, selectedMonth, selectedUnitKerja, statusFilter, searchQuery]);
 
-    // ==========================================
+  // ==========================================
   // 8. CRUD & Save Handlers
   // ==========================================
   const handleUpdateRecord = (id: string, updates: Partial<KGBRecord>) => {
@@ -380,14 +375,12 @@ export default function App() {
 
     showToast('Menyimpan semua perubahan...', 'info');
 
-    // 1. Simpan ke localStorage
     setRecords(prev => {
       const updated = prev.map(r => ({ ...r, isSaved: true }));
       localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(updated));
       return updated;
     });
 
-    // 2. Simpan ke Google Sheets (Hanya yang ada Nomor SK-nya)
     if (accessToken && spreadsheetInput) {
       const recordsToSync = records.filter(r => r.nomorSk || r.yearDetails?.[selectedYear]?.nomorSk);
       let successCount = 0;
@@ -404,6 +397,17 @@ export default function App() {
     
     setHasUnsavedChanges(false);
   };
+
+  const handleSaveTemplate = (newTemplate: SKTemplateConfig) => {
+    if (session?.role !== 'admin') {
+      showToast('Aksi dibatasi: Hanya Admin yang dapat mengubah template SK.', 'error');
+      return;
+    }
+    setTemplate(newTemplate);
+    localStorage.setItem(STORAGE_KEY_TEMPLATE, JSON.stringify(newTemplate));
+    showToast('Format Template SK berhasil diperbarui!');
+  };
+
   // ==========================================
   // 9. Sync & Demo Data Handlers
   // ==========================================
@@ -460,18 +464,18 @@ export default function App() {
   };
 
   // ==========================================
-    // 10. Print & Export Handlers (DOCX)
+  // 10. Print & Export Handlers
   // ==========================================
   const handlePrintSingleSK = async (record: KGBRecord) => {
-  showToast('Sedang membuat PDF via Google Docs...', 'info');
-  try {
-    await generatePdfViaGoogleAppsScript(record, selectedYear);
-    showToast(`PDF berhasil diunduh.`);
-  } catch (error: any) {
-    console.error('Gagal:', error);
-    showToast(error.message || 'Gagal membuat PDF.', 'error');
-  }
-};
+    showToast('Sedang membuat PDF via Google Docs...', 'info');
+    try {
+      await generatePdfViaGoogleAppsScript(record, selectedYear);
+      showToast(`PDF berhasil diunduh.`);
+    } catch (error: any) {
+      console.error('Gagal:', error);
+      showToast(error.message || 'Gagal membuat PDF.', 'error');
+    }
+  };
 
   const handleUploadSingleToDrive = (record: KGBRecord) => {
     setDriveExportSingleRecord(record);
@@ -496,7 +500,7 @@ export default function App() {
       <div className="fixed top-[35%] right-[-10%] w-[38rem] h-[38rem] bg-cyan-500/12 rounded-full blur-[130px] pointer-events-none -z-10" />
       <div className="fixed bottom-[-10%] left-[25%] w-[45rem] h-[45rem] bg-indigo-600/12 rounded-full blur-[150px] pointer-events-none -z-10" />
 
-      {/* Toast (Di luar gate agar selalu tampil saat login/logout) */}
+      {/* Toast */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-[60] flex items-center gap-3 px-4.5 py-3 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.7)] border border-white/20 bg-slate-900/90 text-white text-xs backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
           {toastMessage.type === 'error' ? (
@@ -522,7 +526,7 @@ export default function App() {
         currentSession={session}
       />
 
-      {/* MAIN APP (Hanya dirender setelah login) */}
+      {/* MAIN APP */}
       {session && (
         <>
           <Header
@@ -587,13 +591,13 @@ export default function App() {
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-bold text-white tracking-tight">Menu Format SK: Template Word (DocxTemplater)</h3>
+                    <h3 className="text-sm font-bold text-white tracking-tight">Menu Format SK: Template Google Docs</h3>
                     <span className="px-2.5 py-0.5 text-[10px] font-bold rounded-full border bg-cyan-500/20 text-cyan-300 border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.25)]">
                       Cetak Tanpa Login
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    Dokumen SK dihasilkan langsung dari file template `.docx` tanpa memerlukan koneksi API Google Docs.
+                    Dokumen SK dihasilkan langsung dari file template Google Docs via Google Apps Script.
                   </p>
                 </div>
               </div>
@@ -636,7 +640,7 @@ export default function App() {
             <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                <span>Sistem Informasi Kenaikan Gaji Berkala (KGB) &bull; Terintegrasi Google Sheets & DocxTemplater</span>
+                <span>Sistem Informasi Kenaikan Gaji Berkala (KGB) &bull; Terintegrasi Google Sheets & Google Docs</span>
               </div>
               <div className="text-[11px] text-slate-400 font-mono">
                 KGB Perpres No. 11/2024 &bull; Format Standar BKN
