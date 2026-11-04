@@ -908,7 +908,7 @@ export async function saveToRecordSheet(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // PASTIKAN URL INI ADALAH URL WEB APP GAS ANDA
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycb.../exec'; 
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzsWKwkB_nPxcLqPVgl0OJOt8eL_80d-zk7nRTFZc5nOhOMp8sIlDxNdYNpuUiLlrPCKw/exec'; 
 
     const tanggalPenetapan = record.yearDetails?.[selectedYear]?.tanggalPenetapan || record.tanggalPenetapan || '';
     const nomorSk = record.yearDetails?.[selectedYear]?.nomorSk || record.nomorSk || '';
