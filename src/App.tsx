@@ -343,33 +343,72 @@ export default function App() {
     setHasUnsavedChanges(true);
   };
 
-  const handleSaveRecord = (id: string) => {
+    const handleSaveRecord = async (id: string) => {
     if (session?.role !== 'admin') {
       showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan data.', 'error');
       return;
     }
+    
+    const recordToSave = records.find(r => r.id === id);
+    if (!recordToSave) return;
+
+    // 1. Coba simpan ke Google Sheets jika login
+    let savedToSheet = false;
+    if (accessToken && spreadsheetInput) {
+      showToast('Menyimpan ke Google Sheets...', 'info');
+      savedToSheet = await saveToRecordSheet(spreadsheetInput, accessToken, recordToSave, selectedYear);
+    } else {
+      showToast('Peringatan: Login Google diperlukan untuk simpan ke Sheets. Data disimpan lokal.', 'info');
+    }
+
+    // 2. Simpan ke localStorage (Tetap dilakukan sebagai backup)
     setRecords(prev => {
       const updated = prev.map(r => (r.id === id ? { ...r, isSaved: true } : r));
       localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(updated));
       return updated;
     });
     setHasUnsavedChanges(false);
-    showToast('Data baris berhasil disimpan!');
+    
+    if (savedToSheet) {
+      showToast('Data baris berhasil disimpan ke Sheets & Lokal!');
+    } else {
+      showToast('Data berhasil disimpan secara lokal!');
+    }
   };
 
   const handleSaveAll = () => {
     if (session?.role !== 'admin') {
-      showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan seluruh perubahan.', 'error');
+      showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan data.', 'error');
       return;
     }
+    
+    const recordToSave = records.find(r => r.id === id);
+    if (!recordToSave) return;
+
+    // 1. Coba simpan ke Google Sheets jika login
+    let savedToSheet = false;
+    if (accessToken && spreadsheetInput) {
+      showToast('Menyimpan ke Google Sheets...', 'info');
+      savedToSheet = await saveToRecordSheet(spreadsheetInput, accessToken, recordToSave, selectedYear);
+    } else {
+      showToast('Peringatan: Login Google diperlukan untuk simpan ke Sheets. Data disimpan lokal.', 'info');
+    }
+
+    // 2. Simpan ke localStorage (Tetap dilakukan sebagai backup)
     setRecords(prev => {
-      const updated = prev.map(r => ({ ...r, isSaved: true }));
+      const updated = prev.map(r => (r.id === id ? { ...r, isSaved: true } : r));
       localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(updated));
       return updated;
     });
     setHasUnsavedChanges(false);
-    showToast('Seluruh perubahan data KGB berhasil disimpan!');
+    
+    if (savedToSheet) {
+      showToast('Data baris berhasil disimpan ke Sheets & Lokal!');
+    } else {
+      showToast('Data berhasil disimpan secara lokal!');
+    }
   };
+
 
   const handleSaveTemplate = (newTemplate: SKTemplateConfig) => {
     if (session?.role !== 'admin') {
