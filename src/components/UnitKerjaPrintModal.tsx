@@ -74,7 +74,7 @@ export const UnitKerjaPrintModal: React.FC<UnitKerjaPrintModalProps> = ({
 
     } catch (err) {
       console.error('Error generating PDF:', err);
-      alert('Terjadi kesalahan saat menggabungkan file PDF. Silakan coba lagi.');
+      alert('Gagal mencetak PDF: ' + (err.message || 'Terjadi kesalahan sistem'));
     } finally {
       setDownloadingUnit(null);
     }
