@@ -343,7 +343,11 @@ export default function App() {
     setHasUnsavedChanges(true);
   };
 
-    const handleSaveRecord = async (id: string) => {
+    // SEBELUMNYA MUNGKIN SEPERTI INI (Salah):
+// const handleSaveRecord = (id: string) => {
+
+// UBAH MENJADI SEPERTI INI (Benar):
+const handleSaveRecord = async (id: string) => {
     if (session?.role !== 'admin') {
       showToast('Aksi dibatasi: Hanya Admin yang dapat menyimpan data.', 'error');
       return;
@@ -360,6 +364,21 @@ export default function App() {
     } else {
       showToast('Peringatan: Login Google diperlukan untuk simpan ke Sheets. Data disimpan lokal.', 'info');
     }
+
+    // 2. Simpan ke localStorage
+    setRecords(prev => {
+      const updated = prev.map(r => (r.id === id ? { ...r, isSaved: true } : r));
+      localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(updated));
+      return updated;
+    });
+    setHasUnsavedChanges(false);
+    
+    if (savedToSheet) {
+      showToast('Data baris berhasil disimpan ke Sheets & Lokal!');
+    } else {
+      showToast('Data berhasil disimpan secara lokal!');
+    }
+};
 
     // 2. Simpan ke localStorage (Tetap dilakukan sebagai backup)
     setRecords(prev => {
