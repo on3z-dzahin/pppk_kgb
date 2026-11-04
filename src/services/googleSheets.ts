@@ -907,28 +907,22 @@ export async function saveToRecordSheet(
   selectedYear: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // URL Web App Google Apps Script Anda (sama dengan URL untuk PDF)
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzsWKwkB_nPxcLqPVgl0OJOt8eL_80d-zk7nRTFZc5nOhOMp8sIlDxNdYNpuUiLlrPCKw/exec'; 
+    // PASTIKAN URL INI ADALAH URL WEB APP GAS ANDA
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycb.../exec'; 
 
     const tanggalPenetapan = record.yearDetails?.[selectedYear]?.tanggalPenetapan || record.tanggalPenetapan || '';
     const nomorSk = record.yearDetails?.[selectedYear]?.nomorSk || record.nomorSk || '';
     const mulaiTanggal = record.kolomK ? `${record.kolomK}` : ''; 
 
     const payload = {
-      nip: record.nip,
-      nama: record.nama,
-      unitKerja: record.unitKerja,
-      nomorSk: nomorSk,
-      mkSebelum: record.mkSebelum || '',
-      mkSesudah: record.mkSesudah || '',
-      tanggalPenetapan: tanggalPenetapan,
-      mulaiTanggal: mulaiTanggal,
-      tahun: selectedYear.toString()
+      nip: record.nip, nama: record.nama, unitKerja: record.unitKerja,
+      nomorSk: nomorSk, mkSebelum: record.mkSebelum || '', mkSesudah: record.mkSesudah || '',
+      tanggalPenetapan: tanggalPenetapan, mulaiTanggal: mulaiTanggal, tahun: selectedYear.toString()
     };
 
     const response = await fetch(GAS_WEB_APP_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain' }, // WAJIB text/plain
       body: JSON.stringify(payload)
     });
 
