@@ -1,16 +1,14 @@
 import { saveAs } from 'file-saver';
 import { KGBRecord, getSKRenderData } from '../types/kgb';
 
-// PENTING: Pastikan URL Web App Google Apps Script Anda ada di sini
-const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycb.../exec'; 
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycb.../exec'; // URL ANDA
 
-// Fungsi untuk mengambil data Base64 saja (tanpa langsung download)
 export async function fetchPdfBase64FromGAS(record: KGBRecord, selectedYear: number) {
   const skData = getSKRenderData(record, selectedYear);
   const payload = {
     ...skData,
-    golongan: record.kolomF || record.pangkatGol,
-    jabatan: record.kolomR || record.jabatan,
+    golongan: record.kolomF || record.pangkatGol || '-',
+    jabatan: record.kolomR || record.jabatan || '-',
     nama_pengirim: 'SRIKANDI',
     nip_pengirim: '........................'
   };
@@ -21,7 +19,15 @@ export async function fetchPdfBase64FromGAS(record: KGBRecord, selectedYear: num
     body: JSON.stringify(payload)
   });
 
-  const result = await response.json();
+  // Tangkap jika respons bukan JSON (misal error server GAS)
+  const text = await response.text();
+  let result;
+  try {
+    result = JSON.parse(text);
+  } catch (e) {
+    console.error("Respons bukan JSON:", text.substring(0, 100));
+    throw new Error('Gagal memproses PDF. Pastikan URL Web App Google Apps Script benar dan di-deploy untuk "Anyone".');
+  }
 
   if (result.status === 'error') {
     throw new Error(result.message);
@@ -30,7 +36,6 @@ export async function fetchPdfBase64FromGAS(record: KGBRecord, selectedYear: num
   return { base64: result.pdf, filename: result.filename };
 }
 
-// Fungsi untuk download 1 file (Digunakan oleh tombol di tabel utama & SKPreviewModal)
 export async function generatePdfViaGoogleAppsScript(record: KGBRecord, selectedYear: number) {
   const { base64, filename } = await fetchPdfBase64FromGAS(record, selectedYear);
   
